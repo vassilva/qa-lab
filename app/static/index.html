@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Lab · Mini bolsa</title>
+<style>
+  :root{--bg:#0f1729;--panel:#16213a;--line:#25324f;--text:#e8ecf4;--muted:#93a0b8;--buy:#3fb68b;--sell:#ef6f5e;--accent:#5b9cf5;--warn:#e8a33d;--mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;font-weight:600}
+  header .sp{flex:1}
+  .badge{font:12px var(--mono);padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+  .badge.up{color:var(--buy);border-color:var(--buy)} .badge.down{color:var(--sell);border-color:var(--sell)} .badge.warn{color:var(--warn);border-color:var(--warn)}
+  main{display:grid;grid-template-columns:320px 1fr 1fr;gap:16px;padding:16px 24px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+  .panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px;font-weight:600}
+  .wide{grid-column:1/-1}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .tabs button,.btn{background:transparent;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer;font:inherit}
+  .tabs button.on{background:var(--accent);border-color:var(--accent);color:#0b1222;font-weight:600}
+  .btn:hover,.tabs button:hover{border-color:var(--accent)}
+  .btn.buy{background:var(--buy);border-color:var(--buy);color:#06281c;font-weight:600}
+  .btn.sell{background:var(--sell);border-color:var(--sell);color:#3a0d07;font-weight:600}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input,select,textarea{width:100%;background:#0d1426;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font:14px var(--mono)}
+  .row{display:flex;gap:8px;align-items:center}
+  .row>*{flex:1}
+  .check{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;color:var(--muted)} .check input{width:auto}
+  table{width:100%;border-collapse:collapse;font:13px var(--mono)}
+  th{text-align:left;color:var(--muted);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:6px 8px;border-bottom:1px solid #1d2944;white-space:nowrap}
+  td.num,th.num{text-align:right}
+  .bid{color:var(--buy)} .ask{color:var(--sell)}
+  .book{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .st{font-size:11px;padding:2px 7px;border-radius:4px;background:#22304f}
+  .st.FILLED{color:var(--buy)} .st.REJECTED{color:var(--sell)} .st.PARTIALLY_FILLED{color:var(--warn)} .st.CANCELLED{color:var(--muted)} .st.NEW{color:var(--accent)}
+  pre{background:#0d1426;border:1px solid var(--line);border-radius:6px;padding:10px;font:12px var(--mono);overflow:auto;max-height:220px;margin:12px 0 0;white-space:pre-wrap}
+  .scroll{max-height:320px;overflow:auto}
+  .presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px} .presets .btn{font-size:12px;padding:5px 9px}
+  .empty{color:var(--muted);font-size:13px;padding:8px}
+  .x{color:var(--muted);background:none;border:0;cursor:pointer;font:inherit} .x:hover{color:var(--sell)}
+  a{color:var(--accent)}
+  @media (max-width:1000px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>QA Lab · Mini bolsa de valores</h1>
+  <span id="health" class="badge">a verificar…</span>
+  <span id="mode" class="badge"></span>
+  <span class="sp"></span>
+  <a href="/checklist">Checklist da vaga</a>
+  <a href="/reports/" target="_blank">Relatório de testes</a>
+  <button class="btn" id="reset" title="Apaga ordens, negócios e a base de dados">Reiniciar ambiente</button>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Nova ordem</h2>
+    <div class="tabs" id="symbols"></div>
+    <form id="orderForm" autocomplete="off">
+      <label for="qty">Quantidade</label>
+      <input id="qty" type="number" value="100" min="0" step="1">
+      <label for="price">Preço (EUR)</label>
+      <input id="price" type="number" step="0.01">
+      <div class="check"><input type="checkbox" id="mkt"><label for="mkt" style="margin:0">Ordem de mercado (sem preço)</label></div>
+      <div class="row" style="margin-top:14px">
+        <button type="submit" class="btn buy" data-side="BUY">Comprar</button>
+        <button type="submit" class="btn sell" data-side="SELL">Vender</button>
+      </div>
+    </form>
+    <p class="empty" id="refInfo"></p>
+    <h2 style="margin-top:12px">Última resposta da API</h2>
+    <pre id="lastResponse">—</pre>
+  </section>
+
+  <section class="panel">
+    <h2>Livro de ordens · <span id="bookSymbol"></span></h2>
+    <div class="book">
+      <div><table><thead><tr><th>Ordem</th><th class="num">Qtd</th><th class="num bid">Compra</th><th></th></tr></thead><tbody id="bids"></tbody></table></div>
+      <div><table><thead><tr><th class="num ask">Venda</th><th class="num">Qtd</th><th>Ordem</th><th></th></tr></thead><tbody id="asks"></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Negócios</h2>
+    <div class="scroll"><table><thead><tr><th>Negócio</th><th>Símbolo</th><th class="num">Qtd</th><th class="num">Preço</th><th>Compra</th><th>Venda</th></tr></thead><tbody id="trades"></tbody></table></div>
+  </section>
+
+  <section class="panel wide">
+    <div class="row" style="flex:none;justify-content:space-between">
+      <h2 style="margin:0">Ordens</h2>
+      <select id="statusFilter" style="width:220px;flex:none">
+        <option value="">Todos os estados</option><option>NEW</option><option>PARTIALLY_FILLED</option><option>FILLED</option><option>CANCELLED</option><option>REJECTED</option>
+      </select>
+    </div>
+    <div class="scroll" style="margin-top:10px"><table><thead><tr><th>Ordem</th><th>Símbolo</th><th>Lado</th><th class="num">Qtd</th><th class="num">Preço</th><th class="num">Restante</th><th>Estado</th><th>Motivo de rejeição</th></tr></thead><tbody id="orders"></tbody></table></div>
+  </section>
+
+  <section class="panel wide">
+    <h2>Consola SQL (só leitura)</h2>
+    <div class="presets" id="presets"></div>
+    <textarea id="sql" rows="3">SELECT status, COUNT(*) AS total FROM orders GROUP BY status;</textarea>
+    <div class="row" style="margin-top:8px;flex:none"><button class="btn" id="runSql" style="flex:none">Executar</button><span id="sqlMsg" class="empty"></span></div>
+    <div class="scroll" style="margin-top:8px"><table id="sqlResult"></table></div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+let symbol = "EDP", refs = {}, side = "BUY";
+const presets = {
+  "Ordens por estado": "SELECT status, COUNT(*) AS total FROM orders GROUP BY status;",
+  "Rejeições por motivo": "SELECT reject_reason, COUNT(*) AS total FROM orders WHERE status='REJECTED' GROUP BY reject_reason ORDER BY total DESC;",
+  "Volume por símbolo": "SELECT symbol, SUM(qty) AS volume, ROUND(SUM(qty*price),2) AS valor_eur FROM trades GROUP BY symbol;",
+  "Negócios fora do livro (integridade)": "SELECT t.trade_id FROM trades t LEFT JOIN orders o ON o.order_id = t.buy_order_id WHERE o.order_id IS NULL;",
+  "Quantidade executada vs. ordem": "SELECT o.order_id, o.qty, o.remaining, COALESCE(SUM(t.qty),0) AS executado FROM orders o LEFT JOIN trades t ON o.order_id IN (t.buy_order_id, t.sell_order_id) GROUP BY o.order_id HAVING o.qty - o.remaining <> COALESCE(SUM(t.qty),0);"
+};
+const esc = v => String(v ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = p => p == null ? "MKT" : Number(p).toFixed(2);
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {headers: {"Content-Type": "application/json"}, ...opts});
+  let body; try { body = await r.json(); } catch { body = null; }
+  return {status: r.status, body};
+}
+
+function renderSymbols() {
+  $("#symbols").innerHTML = Object.keys(refs).map(s => `<button type="button" class="${s===symbol?"on":""}" data-s="${s}">${s}</button>`).join("");
+  $("#bookSymbol").textContent = symbol;
+  const ref = refs[symbol];
+  $("#refInfo").textContent = ref ? `Preço de referência ${ref.toFixed(2)} EUR · bandas ±10% (${(ref*0.9).toFixed(2)} – ${(ref*1.1).toFixed(2)}) · tick 0.01 · máx. 10 000` : "";
+  if (!$("#price").value && ref) $("#price").value = ref.toFixed(2);
+}
+
+$("#symbols").addEventListener("click", e => {
+  const s = e.target.dataset.s; if (!s) return;
+  symbol = s; $("#price").value = ""; renderSymbols(); refresh();
+});
+document.querySelectorAll("#orderForm button").forEach(b => b.addEventListener("click", () => side = b.dataset.side));
+$("#mkt").addEventListener("change", e => $("#price").disabled = e.target.checked);
+
+$("#orderForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const payload = {symbol, side, qty: $("#qty").value, price: $("#mkt").checked ? null : $("#price").value};
+  const r = await api("/api/orders", {method: "POST", body: JSON.stringify(payload)});
+  $("#lastResponse").textContent = `POST /api/orders → HTTP ${r.status}\n` + JSON.stringify(r.body, null, 2);
+  refresh();
+});
+
+async function cancel(id) {
+  const r = await api(`/api/orders/${id}`, {method: "DELETE"});
+  $("#lastResponse").textContent = `DELETE /api/orders/${id} → HTTP ${r.status}\n` + JSON.stringify(r.body, null, 2);
+  refresh();
+}
+document.addEventListener("click", e => { if (e.target.dataset.cancel) cancel(e.target.dataset.cancel); });
+
+$("#reset").addEventListener("click", async () => {
+  if (!confirm("Apagar todas as ordens e negócios?")) return;
+  await api("/api/reset", {method: "POST"}); $("#lastResponse").textContent = "Ambiente reiniciado."; refresh();
+});
+
+async function refresh() {
+  try {
+    const [h, book, trades, orders] = await Promise.all([
+      api("/health"), api(`/api/book/${symbol}`), api("/api/trades"),
+      api("/api/orders" + ($("#statusFilter").value ? `?status=${$("#statusFilter").value}` : ""))
+    ]);
+    $("#health").textContent = `serviço ${h.body.status} · ${h.body.database}`; $("#health").className = "badge " + (h.body.status === "UP" ? "up" : "down");
+    $("#mode").textContent = h.body.challenge_mode ? "modo desafio ATIVO" : "modo normal";
+    $("#mode").className = "badge" + (h.body.challenge_mode ? " warn" : "");
+    $("#bids").innerHTML = book.body.bids.map(o => `<tr><td>${o.order_id}</td><td class="num">${o.remaining}</td><td class="num bid">${fmt(o.price)}</td><td><button class="x" data-cancel="${o.order_id}" title="Cancelar">✕</button></td></tr>`).join("") || `<tr><td colspan="4" class="empty">Sem compras</td></tr>`;
+    $("#asks").innerHTML = book.body.asks.map(o => `<tr><td class="num ask">${fmt(o.price)}</td><td class="num">${o.remaining}</td><td>${o.order_id}</td><td><button class="x" data-cancel="${o.order_id}" title="Cancelar">✕</button></td></tr>`).join("") || `<tr><td colspan="4" class="empty">Sem vendas</td></tr>`;
+    $("#trades").innerHTML = trades.body.map(t => `<tr><td>${t.trade_id}</td><td>${t.symbol}</td><td class="num">${t.qty}</td><td class="num">${fmt(t.price)}</td><td>${t.buy_order_id}</td><td>${t.sell_order_id}</td></tr>`).join("") || `<tr><td colspan="6" class="empty">Ainda não há negócios</td></tr>`;
+    $("#orders").innerHTML = orders.body.map(o => `<tr><td>${o.order_id}</td><td>${o.symbol}</td><td class="${o.side==="BUY"?"bid":"ask"}">${o.side}</td><td class="num">${o.qty}</td><td class="num">${fmt(o.price)}</td><td class="num">${o.remaining}</td><td><span class="st ${o.status}">${o.status}</span></td><td>${esc(o.reject_reason)}</td></tr>`).join("") || `<tr><td colspan="8" class="empty">Sem ordens</td></tr>`;
+  } catch {
+    $("#health").textContent = "serviço em baixo"; $("#health").className = "badge down";
+  }
+}
+$("#statusFilter").addEventListener("change", refresh);
+
+$("#presets").innerHTML = Object.keys(presets).map(k => `<button class="btn" data-p="${esc(k)}">${esc(k)}</button>`).join("");
+$("#presets").addEventListener("click", e => { if (e.target.dataset.p) { $("#sql").value = presets[e.target.dataset.p]; runSql(); } });
+async function runSql() {
+  const r = await api("/api/query", {method: "POST", body: JSON.stringify({sql: $("#sql").value})});
+  if (r.status !== 200) { $("#sqlMsg").textContent = "Erro: " + (r.body && r.body.error); $("#sqlResult").innerHTML = ""; return; }
+  $("#sqlMsg").textContent = `${r.body.rows.length} linha(s)`;
+  $("#sqlResult").innerHTML = `<thead><tr>${r.body.columns.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>` +
+    r.body.rows.map(row => `<tr>${row.map(v => `<td>${esc(v)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+}
+$("#runSql").addEventListener("click", runSql);
+
+(async () => {
+  const s = await api("/api/symbols");
+  s.body.forEach(x => refs[x.symbol] = x.reference_price);
+  renderSymbols(); refresh(); setInterval(refresh, 2000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Lab · Checklist da vaga</title>
+<style>
+  :root{--bg:#0f1729;--panel:#16213a;--line:#25324f;--text:#e8ecf4;--muted:#93a0b8;--ok:#3fb68b;--no:#ef6f5e;--accent:#5b9cf5}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+  header h1{margin:0;font-size:20px;font-weight:600}
+  header a{color:var(--accent)}
+  .sp{flex:1}
+  .progress{min-width:260px}
+  .bar{height:10px;background:#22304f;border-radius:99px;overflow:hidden;margin-top:6px}
+  .bar>div{height:100%;background:var(--ok)}
+  main{padding:16px 24px;display:grid;gap:16px;max-width:1200px}
+  .epic{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .epic h2{margin:0 0 4px;font-size:16px;font-weight:600}
+  .epic .meta{color:var(--muted);font-size:13px;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse}
+  td{padding:9px 8px;border-top:1px solid var(--line);vertical-align:top}
+  td.st{width:44px;text-align:center}
+  td.id{width:54px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace}
+  td.ev{color:var(--muted);width:40%}
+  .ok,.no{display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+  .ok{background:var(--ok);color:#06281c} .no{background:var(--no);color:#3a0d07}
+  .lbl{position:absolute;left:-9999px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Checklist da vaga</h1>
+  <a href="/">Abrir a mini bolsa</a>
+  <span class="sp"></span>
+  <div class="progress"><span id="summary"></span><div class="bar"><div id="bar" style="width:0"></div></div></div>
+</header>
+<main id="epics"></main>
+<script>
+const esc = v => String(v ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+fetch("/api/checklist").then(r => r.json()).then(data => {
+  document.getElementById("title").textContent = data.title;
+  let total = 0, done = 0;
+  document.getElementById("epics").innerHTML = data.epics.map(ep => {
+    const d = ep.items.filter(i => i.done).length; total += ep.items.length; done += d;
+    return `<section class="epic"><h2>${esc(ep.title)}</h2><div class="meta">${d} de ${ep.items.length} concluídas</div><table>` +
+      ep.items.map(i => `<tr><td class="st">${i.done ? '<span class="ok" aria-hidden="true">✓</span><span class="lbl">Concluído</span>' : '<span class="no" aria-hidden="true">✕</span><span class="lbl">Por fazer</span>'}</td>
+        <td class="id">${esc(i.id)}</td><td>${esc(i.requirement)}</td>
+        <td class="ev">${i.link ? `<a href="${esc(i.link)}">${esc(i.evidence)}</a>` : esc(i.evidence)}</td></tr>`).join("") + `</table></section>`;
+  }).join("");
+  document.getElementById("summary").textContent = `${done} de ${total} etapas concluídas (${Math.round(done/total*100)}%) · atualizado em ${data.updated}`;
+  document.getElementById("bar").style.width = `${done/total*100}%`;
+});
+</script>
+</body>
+</html>

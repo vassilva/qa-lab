@@ -1,0 +1,3 @@
+# Scripts Shell sempre com fim de linha Linux (evita erros "bad interpreter" no Windows)
+*.sh text eol=lf
+Dockerfile text eol=lf

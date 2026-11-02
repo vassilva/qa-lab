@@ -1,0 +1,50 @@
+# QA Lab: arranque com  docker compose up -d --build
+# Páginas: http://localhost:8000 (mini bolsa) · :8000/checklist · :7681 (terminal Linux) · :8081 (Adminer)
+name: qa-lab
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: qa-lab-postgres
+    environment:
+      POSTGRES_USER: qa
+      POSTGRES_PASSWORD: qa
+      POSTGRES_DB: qa_lab
+    ports:
+      - "5433:5432"     # 5433 no teu PC, para não chocar com o teu PostgreSQL local (5432)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qa -d qa_lab"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    container_name: qa-lab-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://qa:qa@postgres:5432/qa_lab
+      QA_LAB_CHALLENGE: ${QA_LAB_CHALLENGE:-0}
+    ports:
+      - "8000:8000"     # mini bolsa (UI + API)
+      - "7681:7681"     # terminal Linux no browser
+    volumes:
+      - ./:/opt/qa-lab  # editas no VS Code e o contentor vê as alterações
+
+  adminer:
+    image: adminer:4
+    container_name: qa-lab-adminer
+    depends_on:
+      - postgres
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "8081:8080"     # base de dados no browser (servidor: postgres, user: qa, pass: qa)
+
+volumes:
+  pgdata:
