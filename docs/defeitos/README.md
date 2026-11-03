@@ -65,6 +65,8 @@ Novo → Em análise → Confirmado → Em correção → Corrigido → Em retes
 | [DEF-008](DEF-008.md) | Pipeline corre no Jenkins antigo durante a atualização das ferramentas | Ambiente / Pipeline | Média | P2 | Fechado (processo) |
 | [DEF-009](DEF-009.md) | Build da imagem falha: pacote ttyd não existe no Debian 12 | Ambiente / Build | Alta | P1 | Fechado |
 | [DEF-010](DEF-010.md) | Query de reconciliação falha em PostgreSQL (alias usado no HAVING) | Base de dados | Média | P2 | Fechado |
+| [DEF-011](DEF-011.md) | Backup falharia: pg_dump 15 incompatível com o servidor PostgreSQL 16 | Ambiente / Base de dados | Alta | P1 | Fechado |
 
 Os DEF-001 a DEF-005 só existem com o **modo desafio** ligado (Jenkins → Build with Parameters → `MODO_DESAFIO`).
 São defeitos de treino: a "versão corrigida" é a mesma imagem com o modo desafio desligado.
+Os DEF-006 a DEF-011 são reais, encontrados durante a construção do laboratório.
