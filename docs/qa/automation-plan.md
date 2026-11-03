@@ -7,7 +7,7 @@
 | Acceptance criteria with an automated scenario | **21 of 21 (100%)** | `scripts/traceability.py` |
 | Business risks covered | **19 of 19** | Traceability matrix |
 | Code coverage (component and API tests) | **86%** (93% in v0.4.0; the difference is the Kafka connector, tested only in the QA environment) | pytest-cov, in the "Component and API tests" stage |
-| Automated tests | **87** pytest (component, API, integration, contracts) + **33** BDD scenarios | JUnit reports in Jenkins |
+| Automated tests | **91** pytest (component, API, integration, contracts) + **33** BDD scenarios | JUnit reports in Jenkins |
 | Manual cases fully or partly automated | **8 of 10** | `manual-test-cases.md` |
 | Feedback time for a commit | ~2 minutes until QA is validated | Stage durations in Jenkins |
 | Training defects caught by the regression | **5 of 5** (8 scenarios fail in challenge mode) | Pipeline with `CHALLENGE_MODE` |

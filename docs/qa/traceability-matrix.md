@@ -13,7 +13,7 @@ Generated automatically by `scripts/traceability.py` on 2026-11-03. Do not edit 
 | **AC-N03** At the same price, the order that arrived first executes first | R-02 (Critical) | At the same price, the first to arrive executes first (`features/02_order_matching.feature:33`)<br>Best price has priority over arrival time (`features/02_order_matching.feature:41`) | — | DEF-004 (Open (challenge mode)) |
 | **AC-N04** An order that does not cross stays in the book and creates no trade | R-11 (High) | An order that does not cross stays in the book (`features/02_order_matching.feature:50`) | — | — |
 | **AC-N05** A market order without a counterparty is cancelled and does not rest in the book | R-10 (High) | A market order without a counterparty is cancelled (`features/02_order_matching.feature:57`) | — | — |
-| **AC-L01** Each trade creates a PENDING instruction for T+2 business days (weekends do not count) | R-03 (Critical) | T+2 settlement date calculation (`features/03_settlement.feature:16`) | TC-M01 | DEF-015 (Closed) |
+| **AC-L01** Each trade creates a PENDING instruction for T+2 business days (weekends do not count) | R-03 (Critical) | T+2 settlement date calculation (`features/03_settlement.feature:16`) | TC-M01 | DEF-015 (Closed (reopened once: retest failed in build #11)) |
 | **AC-L02** TARGET2 closing days (Christmas, Easter, 1 January, 1 May, 26 December) do not count | R-03 (Critical) | T+2 settlement date calculation (`features/03_settlement.feature:16`) | TC-M07 | DEF-005 (Open (challenge mode)) |
 | **AC-L03** The end of day (EOD) only settles instructions that reached their intended settlement date | R-06 (Critical) | The instruction only settles at the end of day of its intended date (`features/03_settlement.feature:33`) | TC-M05 | DEF-013 (Closed) |
 | **AC-L04** A held instruction is not settled until it is released | R-09 (High) | A held instruction is not settled until it is released (`features/03_settlement.feature:45`) | TC-M06 | — |
@@ -30,4 +30,4 @@ Generated automatically by `scripts/traceability.py` on 2026-11-03. Do not edit 
 
 - Acceptance criteria: **21**, with an automated scenario: **21** (100%).
 - Business risks covered by criteria with a scenario: **19 of 19**.
-- Manual test cases: **10** · Defects logged: **15**.
+- Manual test cases: **10** · Defects logged: **16**.

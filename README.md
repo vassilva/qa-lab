@@ -76,7 +76,7 @@ Docker Desktop shows three groups: **`qa`**, **`uat`** and **`qa-lab-tools`** (J
 | Test report | `scripts/test_summary.py` | `python3 scripts/test_summary.py reports` → `localhost:8000/reports/` |
 | Traceability | `scripts/traceability.py` | `python3 scripts/traceability.py` |
 
-Today: **87** pytest tests (86% code coverage) and **33** BDD scenarios (21 acceptance criteria, 100% automated).
+Today: **91** pytest tests (86% code coverage) and **33** BDD scenarios (21 acceptance criteria, 100% automated).
 
 The BDD scenarios reset the data, so they **refuse to run in UAT**.
 In Jenkins, **Build with Parameters** lets you choose a `full` or `critical` regression.
