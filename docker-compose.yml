@@ -1,4 +1,5 @@
 # Ferramentas partilhadas do QA Lab: Jenkins (CI/CD) e Adminer (base de dados no browser).
+# No Docker Desktop aparecem no grupo "qa-lab-tools".
 # Antes da primeira vez:   docker network create qa-lab-net
 # Arranque:                docker compose up -d --build
 #
@@ -6,6 +7,8 @@
 #   Adminer  http://localhost:8081   (PostgreSQL · servidor qa-lab-qa-db ou qa-lab-uat-db · qa / qa · qa_lab)
 #
 # Os ambientes QA e UAT são criados pelo pipeline do Jenkins (ver docker-compose.env.yml).
+
+name: qa-lab-tools
 
 services:
   jenkins:
@@ -36,6 +39,7 @@ services:
 
 volumes:
   jenkins_home:
+    name: qa-lab_jenkins_home     # mantém o histórico de builds já existente
 
 networks:
   qa-lab-net:

@@ -26,8 +26,21 @@ fi
 
 docker network inspect qa-lab-net >/dev/null 2>&1 || docker network create qa-lab-net >/dev/null
 
+# Migração: versões antigas usavam os grupos "qa-lab-qa" / "qa-lab-uat". Remove-os uma vez, se existirem.
+if [[ -n "$(docker ps -aq --filter "label=com.docker.compose.project=qa-lab-${ENV_NAME}")" ]]; then
+  echo "==> A remover o grupo antigo qa-lab-${ENV_NAME} (passa a chamar-se ${ENV_NAME})"
+  docker compose -p "qa-lab-${ENV_NAME}" -f "$ROOT/docker-compose.env.yml" --env-file "$ROOT/envs/${ENV_NAME}.env" down -v
+fi
+
+# Modo desafio (defeitos escondidos): só permitido em QA
+export QA_LAB_CHALLENGE="${QA_LAB_CHALLENGE:-0}"
+if [[ "$ENV_NAME" == "uat" ]]; then
+  QA_LAB_CHALLENGE=0
+fi
+[[ "$QA_LAB_CHALLENGE" == "1" ]] && echo "==> ATENÇÃO: modo desafio ligado em ${ENV_NAME^^} (defeitos escondidos ativos)"
+
 echo "==> Deploy da versão $VERSION no ambiente ${ENV_NAME^^}"
-docker compose -p "qa-lab-${ENV_NAME}" \
+docker compose -p "${ENV_NAME}" \
   --env-file "$ROOT/envs/${ENV_NAME}.env" \
   -f "$ROOT/docker-compose.env.yml" \
   up -d --remove-orphans
