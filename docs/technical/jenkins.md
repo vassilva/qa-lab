@@ -10,7 +10,7 @@ The lab Jenkins runs at `localhost:8090` (admin / admin) and is defined **as cod
 | `Jenkinsfile` | The pipeline, versioned with the code |
 
 Deleting Jenkins and creating it again gives exactly the same result, with no manual clicks.
-To update it safely (without killing a running build): `scripts\update_tools.ps1` (see DEF-008).
+To update it safely (without killing a running build): `scripts\update_tools.ps1` (see DEF-008 and DEF-014).
 
 ## Pipeline
 
