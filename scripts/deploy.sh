@@ -48,4 +48,19 @@ docker compose -p "${ENV_NAME}" \
 for svc in app settlement t2s; do
   bash "$ROOT/scripts/wait_healthy.sh" "qa-lab-${ENV_NAME}-${svc}" 180
 done
+
+# kafka-init is a one-off job (it creates the Kafka topics and exits). Check that it succeeded, then remove it
+# so the environment shows only long-running services (fully green group in Docker Desktop).
+INIT="qa-lab-${ENV_NAME}-kafka-init"
+if docker container inspect "$INIT" >/dev/null 2>&1; then
+  INIT_EXIT="$(docker inspect -f '{{.State.ExitCode}}' "$INIT")"
+  if [[ "$INIT_EXIT" != "0" ]]; then
+    echo "ERROR: $INIT exited with code $INIT_EXIT (Kafka topics not created). Log:" >&2
+    docker logs "$INIT" >&2 || true
+    exit 1
+  fi
+  echo "==> Kafka topics: $(docker exec "qa-lab-${ENV_NAME}-kafka" /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list | tr '\n' ' ')"
+  docker rm "$INIT" >/dev/null
+  echo "==> $INIT finished successfully and was removed"
+fi
 echo "==> ${ENV_NAME^^} is running version $VERSION"
