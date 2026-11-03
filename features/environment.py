@@ -9,6 +9,7 @@ REFUSES to run against any environment other than QA or LOCAL (never UAT).
 """
 
 import os
+import time
 
 import requests
 
@@ -54,6 +55,14 @@ def before_all(context):
     print(f"BDD against {base_url} · environment {environment} · version {health.get('version')} "
           f"· database {health.get('database')}")
     context.cleanup_allowed = True     # only after confirming this is NOT UAT
+
+    # Readiness (DEF-015): do not start until Settlement can receive trades (Kafka partition assigned)
+    deadline = time.time() + 90
+    while not context.api.get("/api/integration").json().get("settlement", {}).get("consumer_ready"):
+        if time.time() > deadline:
+            raise RuntimeError("The Settlement consumer is not ready after 90 s (no Kafka partition assigned)")
+        time.sleep(1)
+    print("Settlement consumer ready")
 
 
 def before_scenario(context, scenario):

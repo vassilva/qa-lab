@@ -91,6 +91,7 @@ def health():
     ok = db_ok and bus_ok
     return jsonify(status="UP" if ok else "DEGRADED", service="settlement", environment=ENV_NAME, version=APP_VERSION,
                    database=database.engine_name, database_ok=db_ok, bus=bus.name, bus_ok=bus_ok,
+                   consumer_ready=bus.ready(busmod.TOPIC_TRADES),     # readiness (DEF-015): partition assigned
                    consumer={k: v for k, v in state.items()}), 200 if ok else 503
 
 

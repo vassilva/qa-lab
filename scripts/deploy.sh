@@ -49,6 +49,22 @@ for svc in app settlement t2s; do
   bash "$ROOT/scripts/wait_healthy.sh" "qa-lab-${ENV_NAME}-${svc}" 180
 done
 
+# Readiness (DEF-015): "healthy" means the service answers; Settlement is only READY when its Kafka consumer
+# has been assigned the partition. After a redeploy that can take 10-20 s (Kafka waits for the old consumer to expire).
+SETTLEMENT="qa-lab-${ENV_NAME}-settlement"
+for i in $(seq 1 90); do
+  if [[ "$(docker exec "$SETTLEMENT" curl -fsS localhost:8001/health 2>/dev/null | jq -r .consumer_ready)" == "true" ]]; then
+    echo "==> Settlement consumer ready (${i}s)"
+    break
+  fi
+  if [[ "$i" == "90" ]]; then
+    echo "ERROR: the Settlement consumer has no Kafka partition after 90 s. Last log lines:" >&2
+    docker logs --tail 20 "$SETTLEMENT" >&2 || true
+    exit 1
+  fi
+  sleep 1
+done
+
 # kafka-init is a one-off job (it creates the Kafka topics and exits). Check that it succeeded, then remove it
 # so the environment shows only long-running services (fully green group in Docker Desktop).
 INIT="qa-lab-${ENV_NAME}-kafka-init"

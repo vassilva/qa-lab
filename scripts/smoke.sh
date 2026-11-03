@@ -4,7 +4,7 @@
 #
 # 1. /health responds UP and is connected to PostgreSQL
 # 2. the Order Entry Gateway accepts an order (and cancels it, to keep the environment clean)
-# 3. the integration is healthy: bus (Kafka), Settlement and the T2S simulator
+# 3. the integration is healthy: bus (Kafka), Settlement (consumer ready) and the T2S simulator
 # 4. Settlement responds (business date and instructions)
 set -euo pipefail
 
@@ -36,8 +36,9 @@ esac
 integ="$(curl -fsS "$BASE_URL/api/integration")" || fail "integration status unavailable"
 [[ "$(jq -r .bus_ok <<<"$integ")" == "true" ]] || fail "bus $(jq -r .bus <<<"$integ") unavailable"
 [[ "$(jq -r .settlement.status <<<"$integ")" == "UP" ]] || fail "Settlement: $(jq -c .settlement <<<"$integ")"
+[[ "$(jq -r .settlement.consumer_ready <<<"$integ")" == "true" ]] || fail "Settlement consumer not ready (no partition assigned yet)"
 [[ "$(jq -r .t2s.mode <<<"$integ")" != "no response" ]] || fail "T2S simulator does not respond"
-pass "integration: bus $(jq -r .bus <<<"$integ") · Settlement UP · T2S in $(jq -r .t2s.mode <<<"$integ") mode · outbox pending $(jq -r .outbox.pending <<<"$integ")"
+pass "integration: bus $(jq -r .bus <<<"$integ") · Settlement UP, consumer ready · T2S in $(jq -r .t2s.mode <<<"$integ") mode · outbox pending $(jq -r .outbox.pending <<<"$integ")"
 
 bd="$(curl -fsS "$BASE_URL/api/business-date" | jq -r .business_date)" || fail "business date unavailable"
 curl -fsS "$BASE_URL/api/settlement/instructions" >/dev/null || fail "settlement does not respond"

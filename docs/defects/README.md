@@ -69,7 +69,8 @@ New → In analysis → Confirmed → In progress → Fixed → In retest → Cl
 | [DEF-012](DEF-012.md) | OpenAPI contract tests do not start in the pipeline: PyYAML missing from the image | Environment / Build | High | P1 | Closed |
 | [DEF-013](DEF-013.md) | QA integrity queries still join tables that now live in different databases | Database / QA tooling | Medium | P2 | Closed |
 | [DEF-014](DEF-014.md) | The tool update script deadlocks with a running pipeline (quiet down pauses the build) | Environment / Pipeline tooling | High | P1 | Closed |
+| [DEF-015](DEF-015.md) | BDD starts before the Settlement Kafka consumer is ready after a redeploy (intermittent failure) | Integration / Deployment | High | P1 | Closed |
 
 DEF-001 to DEF-005 only exist with **challenge mode** on (Jenkins → Build with Parameters → `CHALLENGE_MODE`).
 They are training defects: the "fixed version" is the same image with challenge mode off.
-DEF-006 to DEF-014 are real defects found while building the lab.
+DEF-006 to DEF-015 are real defects found while building the lab.
