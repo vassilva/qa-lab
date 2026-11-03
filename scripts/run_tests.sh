@@ -18,7 +18,11 @@ status=0
 
 case "$SUITE" in
   unit)
-    python -m pytest tests -q --junitxml=reports/pytest-unit.xml || status=$?
+    cov=()
+    if python -c "import pytest_cov" 2>/dev/null; then
+      cov=(--cov=app --cov-report=term --cov-report=xml:reports/coverage/coverage.xml)
+    fi
+    python -m pytest tests -q --junitxml=reports/pytest-unit.xml "${cov[@]}" || status=$?
     ;;
   bdd)
     rm -rf reports/behave
