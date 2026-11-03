@@ -109,6 +109,20 @@ def docs_index():
     return send_from_directory(app.static_folder, "docs.html")
 
 
+@app.get("/api/docs")
+def docs_list():
+    """Índice da documentação: título (primeira linha) de cada ficheiro .md, por pasta."""
+    items = []
+    for folder, _, files in os.walk(DOCS_DIR):
+        for f in sorted(files):
+            if f.endswith(".md"):
+                path = os.path.relpath(os.path.join(folder, f), DOCS_DIR).replace(os.sep, "/")
+                with open(os.path.join(folder, f), encoding="utf-8") as fh:
+                    title = fh.readline().lstrip("# ").strip()
+                items.append({"path": path, "folder": path.split("/")[0], "title": title})
+    return jsonify(sorted(items, key=lambda i: (i["folder"], i["path"])))
+
+
 @app.get("/docs/<path:name>")
 def docs_page(name):
     if not name.endswith(".md") or not os.path.isfile(os.path.join(DOCS_DIR, name)):
