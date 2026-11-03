@@ -36,6 +36,7 @@ trading → messages → settlement → external system, with contracts, failure
 | T2S simulator | `qa-lab-qa-t2s` | 8200 / 9200 | — | `t2s-sim.log` |
 | Kafka | `qa-lab-qa-kafka` | internal (`kafka:9092`) | — | `docker logs` |
 | PostgreSQL | `qa-lab-qa-db` | 5433 / 5434 | `qa_lab` and `settlement` | — |
+| Kafka topic setup (one-off) | `qa-lab-qa-kafka-init` | — | — | creates the topics, exits; `deploy.sh` checks exit code 0 and removes it |
 
 The logs of the three services share one volume, `/var/log/qa-lab/`, and the Trading terminal can see all of them:
 you can follow a trade end to end with `grep T00001 /var/log/qa-lab/*.log`.
