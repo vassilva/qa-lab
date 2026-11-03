@@ -53,9 +53,20 @@ def before_all(context):
         )
     print(f"BDD contra {base_url} · ambiente {environment} · versão {health.get('version')} "
           f"· base de dados {health.get('database')}")
+    context.cleanup_allowed = True     # só depois de confirmar que NÃO é UAT
 
 
 def before_scenario(context, scenario):
     context.orders = {}          # alias usado no cenário (ex.: "V1") → ordem devolvida pela API
     context.last_response = None
     context.trade = None
+
+
+def after_all(context):
+    """Deixa o ambiente como estava antes dos testes: sem dados de teste e com a data de negócio de hoje."""
+    if not getattr(context, "cleanup_allowed", False):
+        return                              # ambiente protegido (ex.: UAT): nunca limpar
+    try:
+        context.api.post("/api/reset")
+    except Exception as exc:  # noqa: BLE001 - não esconder o resultado dos testes por causa da limpeza
+        print(f"Aviso: não foi possível limpar o ambiente depois dos testes: {exc}")
