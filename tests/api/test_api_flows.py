@@ -70,14 +70,12 @@ def test_eod_avanca_para_o_proximo_dia_util(client):
     assert client.post("/api/eod").get_json()["next_business_date"] == "2026-11-09"
 
 
-def test_reconciliacao_todos_os_negocios_tem_instrucao(client):
+def test_reconciliacao_entre_sistemas(client):
     _order(client, "SELL", 300, 4.50)
     _order(client, "BUY", 100, 4.50)
     _order(client, "BUY", 200, 4.55)
-    r = client.post("/api/query", json={"sql": (
-        "SELECT t.trade_id FROM trades t LEFT JOIN settlement_instructions s "
-        "ON s.trade_id = t.trade_id WHERE s.instruction_id IS NULL")}).get_json()
-    assert r["rows"] == []
+    r = client.get("/api/reconciliation").get_json()
+    assert (r["ok"], r["trades"], r["instructions"]) == (True, 2, 2)
 
 
 def test_consola_sql_recusa_escrita(client):

@@ -27,6 +27,8 @@ Prepara dados primeiro: `python3 scripts/gerar_ordens.py --n 300`
 | 3 | Em que portas está o serviço à escuta? | `ss -tlnp` (8000 = aplicação, 7681 = terminal) |
 | 4 | O serviço está saudável? | `curl -s localhost:8000/health \| jq` |
 | 5 | Ver o log em tempo real enquanto envias uma ordem na página | `tail -f /var/log/qa-lab/qa-lab.log` (Ctrl+C para sair) |
+| 5b | Seguir um negócio pelos três serviços (Trading, Settlement, T2S) | `grep -h T00001 /var/log/qa-lab/*.log \| sort` |
+| 5c | Ver os ficheiros trocados com o T2S | `ls -lt /var/lib/qa-lab/files/ \| head` · `cat /var/lib/qa-lab/files/CONF_*.csv` |
 | 6 | Quantas ordens foram rejeitadas? | `grep -c REJEITADA /var/log/qa-lab/qa-lab.log` |
 | 7 | Rejeições por motivo, da mais frequente para a menos | `grep REJEITADA /var/log/qa-lab/qa-lab.log \| sed -E 's/.*REJEITADA: ([^(]+) \(.*/\1/' \| sort \| uniq -c \| sort -rn` |
 | 8 | Seguir uma ordem por todos os componentes | `grep -w O00010 /var/log/qa-lab/qa-lab.log` |
@@ -37,7 +39,7 @@ Prepara dados primeiro: `python3 scripts/gerar_ordens.py --n 300`
 | 13 | Encontrar ficheiros alterados nos últimos 10 minutos | `find /var/log/qa-lab -mmin -10 -type f` |
 | 14 | Espaço em disco e memória do servidor | `df -h /` e `free -m` |
 | 15 | Correr o fecho do dia e ver o código de saída | `bash scripts/eod.sh; echo "código: $?"` |
-| 16 | Fazer um backup e confirmar que é válido | `bash scripts/backup_db.sh && ls -lh /var/log/qa-lab/backups/` |
+| 16 | Fazer um backup e confirmar que é válido | `bash scripts/backup_db.sh && ls -lh /var/log/qa-lab/backups/` (no contentor `qa-lab-qa-settlement` faz o backup da base `settlement`) |
 | 17 | Arquivar os logs de hoje para anexar a um defeito | `tar -czf /tmp/evidencias_$(date +%F).tar.gz /var/log/qa-lab/qa-lab.log /var/log/qa-lab/eod` |
 | 18 | Resumo completo do log | `bash scripts/analisar_logs.sh` |
 | 19 | Porque é que não consigo escrever em `/etc`? | `ls -ld /etc` e `id`: o utilizador `qa` não é root (princípio do menor privilégio) |

@@ -1,14 +1,12 @@
 """Passos BDD da liquidação (Settlement T+2) e da reconciliação na base de dados."""
 
+import os
+import sys
+
 from behave import step
 
-
-def instruction(context):
-    assert context.trade, "Nenhum negócio foi executado neste cenário"
-    rows = [i for i in context.api.get("/api/settlement/instructions").json()
-            if i["trade_id"] == context.trade["trade_id"]]
-    assert len(rows) == 1, f"Esperada 1 instrução para {context.trade['trade_id']}, encontradas {len(rows)}"
-    return rows[0]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _helpers import eventually, instruction  # noqa: E402
 
 
 @step('é executado um negócio de {qtd:d} "{simbolo}" a {preco} EUR')
@@ -19,6 +17,7 @@ def step_negocio(context, qtd, simbolo, preco):
     trades = buy.json()["trades"]
     assert len(trades) == 1, f"Esperado 1 negócio, obtido {trades}"
     context.trade = trades[0]
+    instruction(context)                     # espera que o Settlement receba o evento
 
 
 @step('é criada uma instrução de liquidação para "{data}" no estado "{estado}"')
@@ -86,12 +85,11 @@ def step_recusado(context, codigo):
 
 
 @step("todos os negócios têm instrução de liquidação")
+@step("a reconciliação entre o Trading e o Settlement não tem diferenças")
 def step_reconciliacao(context):
-    rows = context.api.query(
-        "SELECT t.trade_id FROM trades t "
-        "LEFT JOIN settlement_instructions s ON s.trade_id = t.trade_id "
-        "WHERE s.instruction_id IS NULL")
-    assert rows == [], f"Negócios sem instrução de liquidação: {rows}"
+    r = eventually(lambda: (lambda x: x if x.get("ok") else None)(context.api.get("/api/reconciliation").json()),
+                   "a reconciliação entre sistemas continua com diferenças")
+    assert r["ok"], r
 
 
 @step("a quantidade executada de cada ordem coincide com os negócios")

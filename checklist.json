@@ -16,7 +16,7 @@
         {
           "id": "B2",
           "requirement": "Base de dados PostgreSQL por ambiente",
-          "evidence": "Tabelas orders, trades, settlement_instructions; consola SQL e Adminer",
+          "evidence": "Bases qa_lab (Trading) e settlement por ambiente; consola SQL com as duas bases e Adminer",
           "link": "http://localhost:8081",
           "done": true
         },
@@ -54,6 +54,13 @@
           "evidence": "Painel de liquidação e relatório CSV do fecho do dia",
           "link": "/",
           "done": true
+        },
+        {
+          "id": "B8",
+          "requirement": "Arquitetura de integração: Trading → Kafka → Settlement → simulador T2S, com contratos (JSON Schema, OpenAPI), outbox, idempotência, DLQ e reconciliação entre sistemas",
+          "evidence": "3 serviços e 2 bases de dados por ambiente; painel de integração na página principal",
+          "link": "/docs/tecnico/arquitetura.md",
+          "done": true
         }
       ]
     },
@@ -64,28 +71,28 @@
         {
           "id": "1.1",
           "requirement": "Build and execute comprehensive test strategies for standalone testing",
-          "evidence": "Estratégia de testes: abordagem standalone por componente, depois de ponta a ponta",
+          "evidence": "Estratégia de testes: componentes isolados, integração entre serviços com simulador T2S, depois ponta a ponta",
           "link": "/docs/qa/estrategia-de-testes.md",
           "done": true
         },
         {
           "id": "1.2",
           "requirement": "Define test objectives, scope, and acceptance criteria",
-          "evidence": "Objetivos, âmbito e critérios de entrada/saída + 15 critérios de aceitação (AC-V, AC-N, AC-L) em Gherkin",
+          "evidence": "Objetivos, âmbito e critérios de entrada/saída + 21 critérios de aceitação (AC-V, AC-N, AC-L, AC-I) em Gherkin",
           "link": "/docs/qa/estrategia-de-testes.md",
           "done": true
         },
         {
           "id": "1.3",
           "requirement": "Identify and prioritise test cases based on risk and business impact",
-          "evidence": "Matriz de risco (13 riscos de negócio, 4 técnicos) e tags @critico / @alto / @medio",
+          "evidence": "Matriz de risco (19 riscos de negócio, 6 técnicos) e tags @critico / @alto / @medio",
           "link": "/docs/qa/matriz-de-risco.md",
           "done": true
         },
         {
           "id": "1.4",
           "requirement": "Apply solid functional understanding to validate application behaviour and business flows",
-          "evidence": "27 cenários BDD de negociação e liquidação, a correr contra o ambiente QA",
+          "evidence": "33 cenários BDD de negociação, liquidação e integração, a correr contra o ambiente QA com Kafka real",
           "link": "/docs/qa/estrategia-de-testes.md",
           "done": true
         },
@@ -105,7 +112,7 @@
         {
           "id": "2.1",
           "requirement": "Execute manual and automated tests to validate functional behaviour",
-          "evidence": "10 casos de teste manuais, charter exploratório e registo de execução + 90 testes automáticos",
+          "evidence": "10 casos de teste manuais, charter exploratório e registo de execução + 119 testes automáticos (86 pytest + 33 BDD)",
           "link": "/docs/qa/casos-de-teste-manuais.md",
           "done": true
         },
@@ -146,7 +153,7 @@
         {
           "id": "3.1",
           "requirement": "Contribute to test automation coverage and its continuous improvement",
-          "evidence": "Cobertura de código 85% → 93% (pytest-cov no pipeline), 100% dos critérios automatizados, plano de melhoria",
+          "evidence": "86 testes pytest (componente, API, integração entre serviços, contratos OpenAPI) + 33 cenários BDD; 100% dos 21 critérios automatizados",
           "link": "/docs/qa/plano-de-automacao.md",
           "done": true
         },

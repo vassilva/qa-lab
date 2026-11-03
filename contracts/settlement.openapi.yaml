@@ -1,0 +1,99 @@
+openapi: 3.0.3
+info:
+  title: QA Lab · Settlement API
+  version: 0.5.0
+  description: 'Serviço de liquidação T+2: consome trades.executed (Kafka), liquida no T2S por ficheiros.'
+servers:
+- url: http://localhost:8001
+  description: QA
+paths:
+  /health:
+    get:
+      summary: Estado do serviço, da base de dados, do barramento e do consumidor
+      responses:
+        '200':
+          description: OK
+        '503':
+          description: Degradado
+  /api/business-date:
+    get:
+      summary: Data de negócio
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Mudar a data de negócio (só dias úteis TARGET2)
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido
+  /api/settlement/instructions:
+    get:
+      summary: Instruções (filtros ?status= e ?trade_id=)
+      responses:
+        '200':
+          description: OK
+  /api/settlement/instructions/{instruction_id}/{action}:
+    post:
+      summary: Hold ou release
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido
+        '409':
+          description: Estado não permite a operação
+      parameters:
+      - name: instruction_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: action
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/eod:
+    post:
+      summary: 'Fecho do dia: ficheiro para o T2S, confirmações, relatório'
+      responses:
+        '200':
+          description: OK
+  /api/rejected-events:
+    get:
+      summary: Mensagens rejeitadas pelo contrato (DLQ)
+      responses:
+        '200':
+          description: OK
+  /api/consumer/{action}:
+    post:
+      summary: Pausar ou retomar o consumidor (simular indisponibilidade)
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido
+        '403':
+          description: Não disponível em UAT
+      parameters:
+      - name: action
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/reset:
+    post:
+      summary: Limpar dados e adotar a nova geração do ambiente
+      responses:
+        '200':
+          description: OK
+  /api/query:
+    post:
+      summary: Consulta SQL só de leitura
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido

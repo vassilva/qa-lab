@@ -1,4 +1,4 @@
--- Esquema da base de dados do QA Lab (compatível com PostgreSQL e SQLite)
+-- Base de dados do sistema TRADING (compatível com PostgreSQL e SQLite)
 -- A aplicação cria estas tabelas no arranque, se ainda não existirem.
 
 CREATE TABLE IF NOT EXISTS orders (
@@ -25,17 +25,17 @@ CREATE TABLE IF NOT EXISTS trades (
     executed_at   TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS settlement_instructions (
-    instruction_id           VARCHAR(20)   PRIMARY KEY,
-    trade_id                 VARCHAR(20)   NOT NULL UNIQUE REFERENCES trades(trade_id),
-    symbol                   VARCHAR(10)   NOT NULL,
-    qty                      INTEGER       NOT NULL,
-    amount                   NUMERIC(16,2) NOT NULL,
-    trade_date               DATE          NOT NULL,
-    intended_settlement_date DATE          NOT NULL,
-    status                   VARCHAR(20)   NOT NULL CHECK (status IN ('PENDING', 'ON_HOLD', 'SETTLED')),
-    settled_on               DATE,
-    updated_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- Padrão "transactional outbox": o evento é gravado na MESMA transação que o negócio
+-- e publicado no Kafka depois. Se o Kafka estiver em baixo, nada se perde: fica pendente aqui.
+CREATE TABLE IF NOT EXISTS outbox_events (
+    event_id      VARCHAR(32)   PRIMARY KEY,
+    topic         VARCHAR(100)  NOT NULL,
+    event_key     VARCHAR(50)   NOT NULL,
+    payload       TEXT          NOT NULL,
+    created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    published_at  TIMESTAMP,
+    attempts      INTEGER       NOT NULL DEFAULT 0,
+    last_error    VARCHAR(300)
 );
 
 CREATE TABLE IF NOT EXISTS system_state (
@@ -47,4 +47,4 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 
 CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol);
 
-CREATE INDEX IF NOT EXISTS idx_si_status_isd ON settlement_instructions(status, intended_settlement_date)
+CREATE INDEX IF NOT EXISTS idx_outbox_pending ON outbox_events(published_at)

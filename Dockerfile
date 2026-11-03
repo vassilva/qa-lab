@@ -1,4 +1,4 @@
-# Contentor Linux do QA Lab: aplicação + ferramentas de linha de comandos + terminal no browser
+# Contentor Linux do QA Lab: a mesma imagem corre o Trading, o Settlement e o simulador T2S (variável SERVICE)
 FROM python:3.12-slim-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,8 +16,8 @@ RUN ARCH="$(uname -m)" \
 
 # Utilizador sem privilégios de root, como num servidor real
 RUN useradd --create-home --shell /bin/bash qa \
-    && mkdir -p /var/log/qa-lab /opt/qa-lab \
-    && chown -R qa:qa /var/log/qa-lab /opt/qa-lab
+    && mkdir -p /var/log/qa-lab /opt/qa-lab /var/lib/qa-lab/files \
+    && chown -R qa:qa /var/log/qa-lab /opt/qa-lab /var/lib/qa-lab
 
 WORKDIR /opt/qa-lab
 

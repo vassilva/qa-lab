@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Sistema | QA Lab: Order Entry Gateway, Matching Engine, Market Data, Settlement T+2 |
-| Versão do documento | 1.0 · 2026-11-03 |
+| Sistema | QA Lab: Trading (Order Entry Gateway, Matching Engine, Market Data) → Kafka → Settlement T+2 → simulador T2S |
+| Versão do documento | 1.1 · 2026-11-03 (integração entre sistemas, v0.5.0) |
 | Responsável | Vicente (QA) |
 | Requisitos cobertos | Regras de negociação e de liquidação descritas no `README.md` |
 
@@ -16,6 +16,7 @@
 | OBJ-3 | Garantir que cada negócio é liquidado na data certa (T+2, calendário TARGET2) | Todos os critérios de aceitação de liquidação passam; reconciliação negócios ↔ instruções sem diferenças |
 | OBJ-4 | Garantir que a versão aprovada em QA é a mesma que vai para UAT | O pipeline promove a mesma imagem; smoke em UAT confirma a versão |
 | OBJ-5 | Dar informação clara para a decisão go/no-go | Relatório de testes e checklist de release preenchidos em cada versão |
+| OBJ-6 | Garantir que nenhum negócio se perde, duplica ou fica por liquidar entre sistemas | Critérios AC-I01 a AC-I06 passam; reconciliação Trading ↔ Settlement sem diferenças |
 
 ## 2. Âmbito
 
@@ -25,13 +26,16 @@
 - Market Data: livro de ordens e lista de negócios publicados pela API.
 - Settlement: criação de instruções, cálculo da data T+2, hold/release, fecho do dia (EOD), relatório CSV.
 - Integridade dos dados em PostgreSQL (reconciliação negócios ↔ instruções, quantidades executadas).
-- API REST (códigos de resposta, mensagens de erro).
+- API REST (códigos de resposta, mensagens de erro) e contratos OpenAPI (`contracts/*.openapi.yaml`).
+- Integração Trading → Kafka → Settlement: contrato do evento TradeExecuted v1, idempotência, fila de erros (DLQ), indisponibilidade do consumidor.
+- Interface por ficheiro com o T2S (simulado): rejeições, reciclagem, indisponibilidade.
 - Implantação e saúde dos ambientes (smoke tests pós-deploy).
 
 **Fora do âmbito (nesta versão)**
 - Testes de desempenho e latência (um motor real mede microssegundos; aqui não é representativo).
 - Segurança (autenticação, autorização) e protocolos de mercado (FIX, SBE).
 - Clearing (margens, risco de contraparte) e dinheiro/títulos reais.
+- O T2S real: é substituído por um simulador controlável (é o que se faz em testes de integração com sistemas externos).
 - Compatibilidade entre browsers da página web (é uma ferramenta de apoio).
 
 ## 3. Abordagem: testes standalone por componente, depois de ponta a ponta
@@ -45,11 +49,18 @@ Só depois se testa o fluxo completo num ambiente real.
 | Componente: Matching Engine | Preço-tempo, parciais, ordens de mercado, restauro do estado | Sem base de dados; data de negócio fixa | pytest | Pipeline, antes do deploy |
 | Componente: Settlement (calendário) | T+2, fins de semana, feriados TARGET2, Páscoa | Funções puras, datas fixas | pytest (`tests/unit/test_settlement_calendar.py`) | Pipeline, antes do deploy |
 | Integração: API + base de dados | Fluxos pela API, persistência, reconciliação | SQLite temporário, cliente de teste em processo | pytest (`tests/api/`) | Pipeline, antes do deploy |
-| Sistema: ambiente QA | Critérios de aceitação de negócio, de ponta a ponta | Ambiente QA dedicado, reiniciado antes de cada cenário | behave / BDD (`features/`) | Pipeline, depois do deploy em QA |
+| Integração entre serviços | Contrato do evento, idempotência, DLQ, outbox, T2S | Os três serviços no mesmo processo, barramento em memória, simulador T2S | pytest (`tests/integration/`) | Pipeline, antes do deploy |
+| Contrato de API | Todas as rotas documentadas em OpenAPI | Leitura das rotas Flask vs `contracts/` | pytest (`tests/integration/test_openapi.py`) | Pipeline, antes do deploy |
+| Sistema: ambiente QA | Critérios de aceitação de negócio, de ponta a ponta, com Kafka real | Ambiente QA dedicado, reiniciado antes de cada cenário | behave / BDD (`features/`) | Pipeline, depois do deploy em QA |
 | Aceitação: ambiente UAT | Versão certa, serviço saudável, fluxo essencial | Sem testes destrutivos (o UAT está protegido) | smoke test + validação manual | Pipeline, depois do deploy em UAT |
 
 Os testes standalone dão diagnóstico rápido: quando um cenário BDD falha, os testes de componente dizem logo se o problema
 está no gateway, no motor ou na liquidação.
+
+**Testar integrações assíncronas.** Entre o Trading e o Settlement há uma fila (Kafka): o resultado não é imediato.
+Os passos BDD esperam com **polling até um limite** (`eventually`, 15 s) em vez de `sleep` fixos, e falham com uma
+mensagem que diz o que faltou. O simulador T2S tem modos (`rejeitar_simbolo`, `indisponivel`, `lento`…) para provocar
+as falhas do sistema externo de forma repetível. Detalhe em `docs/tecnico/arquitetura.md`.
 
 **Testes manuais e exploratórios** complementam a automação: sessões exploratórias curtas (30–45 min) por funcionalidade
 nova, sobretudo na página web e em combinações de ordens pouco habituais.

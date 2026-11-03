@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: QA Lab · Simulador T2S
+  version: 0.5.0
+  description: 'Simulador do TARGET2-Securities: processa ficheiros de instruções e devolve confirmações.'
+servers:
+- url: http://localhost:8002
+  description: QA
+paths:
+  /health:
+    get:
+      summary: Estado e modo atual
+      responses:
+        '200':
+          description: OK
+  /api/mode:
+    get:
+      summary: Modo atual
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Mudar o modo (normal, rejeitar_simbolo, rejeitar_tudo, lento, indisponivel)
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido
+  /api/process:
+    post:
+      summary: Processar um ficheiro SI_*.csv e escrever CONF_*.csv
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido
+        '503':
+          description: Simulador em modo indisponível
+  /api/reset:
+    post:
+      summary: Voltar ao modo normal
+      responses:
+        '200':
+          description: OK

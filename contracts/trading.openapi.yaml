@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: QA Lab · Trading API
+  version: 0.5.0
+  description: Order Entry Gateway, Matching Engine, Market Data e reencaminhamento para o Settlement. Inspirado na arquitetura
+    pública da Euronext.
+servers:
+- url: http://localhost:8000
+  description: QA
+paths:
+  /health:
+    get:
+      summary: Estado do serviço e das dependências (base de dados, barramento, Settlement, outbox)
+      responses:
+        '200':
+          description: OK
+        '503':
+          description: Base de dados indisponível
+  /api/symbols:
+    get:
+      summary: Símbolos e preços de referência
+      responses:
+        '200':
+          description: OK
+  /api/orders:
+    post:
+      summary: Nova ordem (Order Entry Gateway). Sem price = ordem de mercado
+      responses:
+        '201':
+          description: Aceite
+        '400':
+          description: Pedido inválido
+        '422':
+          description: Rejeitada pelas regras do gateway
+    get:
+      summary: Listar ordens (filtro ?status=)
+      responses:
+        '200':
+          description: OK
+  /api/orders/{order_id}:
+    get:
+      summary: Consultar uma ordem
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Não encontrado
+      parameters:
+      - name: order_id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Cancelar uma ordem
+      responses:
+        '200':
+          description: OK
+        '409':
+          description: Estado não permite a operação
+      parameters:
+      - name: order_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/book/{symbol}:
+    get:
+      summary: Livro de ordens (Market Data)
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/trades:
+    get:
+      summary: Negócios (filtro ?symbol=)
+      responses:
+        '200':
+          description: OK
+  /api/business-date:
+    get:
+      summary: Data de negócio (do Settlement)
+      responses:
+        '200':
+          description: OK
+        '503':
+          description: Serviço dependente indisponível
+    post:
+      summary: Mudar a data de negócio (só dias úteis)
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido
+        '503':
+          description: Serviço dependente indisponível
+  /api/settlement/instructions:
+    get:
+      summary: Instruções de liquidação (do Settlement)
+      responses:
+        '200':
+          description: OK
+        '503':
+          description: Serviço dependente indisponível
+  /api/settlement/instructions/{instruction_id}/{action}:
+    post:
+      summary: Hold ou release de uma instrução
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido
+        '409':
+          description: Estado não permite a operação
+        '503':
+          description: Serviço dependente indisponível
+      parameters:
+      - name: instruction_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: action
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/eod:
+    post:
+      summary: Fecho do dia (no Settlement)
+      responses:
+        '200':
+          description: OK
+        '503':
+          description: Serviço dependente indisponível
+  /api/integration:
+    get:
+      summary: 'Estado da integração: barramento, outbox, Settlement, T2S'
+      responses:
+        '200':
+          description: OK
+  /api/reconciliation:
+    get:
+      summary: 'Reconciliação entre sistemas: negócios vs. instruções'
+      responses:
+        '200':
+          description: OK
+        '503':
+          description: Serviço dependente indisponível
+  /api/integration/replay/{trade_id}:
+    post:
+      summary: Voltar a publicar o evento de um negócio (teste de idempotência)
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Não disponível em UAT
+        '404':
+          description: Não encontrado
+      parameters:
+      - name: trade_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/integration/publish-raw:
+    post:
+      summary: Publicar uma mensagem arbitrária (teste de contrato e DLQ)
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Não disponível em UAT
+  /api/t2s/mode:
+    post:
+      summary: Mudar o modo do simulador T2S
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido
+        '403':
+          description: Não disponível em UAT
+        '503':
+          description: Serviço dependente indisponível
+  /api/reset:
+    post:
+      summary: Reiniciar o ambiente (Trading, Settlement, T2S)
+      responses:
+        '200':
+          description: OK
+  /api/query:
+    post:
+      summary: 'Consulta SQL só de leitura (db: trading ou settlement)'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Pedido inválido
+  /api/checklist:
+    get:
+      summary: Checklist da vaga
+      responses:
+        '200':
+          description: OK
+  /api/docs:
+    get:
+      summary: Índice da documentação
+      responses:
+        '200':
+          description: OK

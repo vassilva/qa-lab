@@ -4,7 +4,8 @@
 #
 # 1. /health responde UP e está ligado ao PostgreSQL
 # 2. o Order Entry Gateway aceita uma ordem (e cancela-a, para não sujar o ambiente)
-# 3. o Settlement responde (data de negócio e instruções)
+# 3. a integração está saudável: barramento (Kafka), Settlement e simulador T2S
+# 4. o Settlement responde (data de negócio e instruções)
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
@@ -31,6 +32,12 @@ case "$status" in
   *)
     fail "ordem de teste com estado inesperado: $resp" ;;
 esac
+
+integ="$(curl -fsS "$BASE_URL/api/integration")" || fail "estado da integração indisponível"
+[[ "$(jq -r .bus_ok <<<"$integ")" == "true" ]] || fail "barramento $(jq -r .bus <<<"$integ") indisponível"
+[[ "$(jq -r .settlement.status <<<"$integ")" == "UP" ]] || fail "Settlement: $(jq -c .settlement <<<"$integ")"
+[[ "$(jq -r .t2s.mode <<<"$integ")" != "sem resposta" ]] || fail "simulador T2S não responde"
+pass "integração: barramento $(jq -r .bus <<<"$integ") · Settlement UP · T2S em modo $(jq -r .t2s.mode <<<"$integ") · outbox pendente $(jq -r .outbox.pending <<<"$integ")"
 
 bd="$(curl -fsS "$BASE_URL/api/business-date" | jq -r .business_date)" || fail "data de negócio indisponível"
 curl -fsS "$BASE_URL/api/settlement/instructions" >/dev/null || fail "settlement não responde"

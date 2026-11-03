@@ -1,13 +1,13 @@
 # Cobertura de automação e plano de melhoria · QA Lab
 
-## Onde estamos (versão 0.4.0)
+## Onde estamos (versão 0.5.0)
 
 | Medida | Valor | Como se mede |
 | --- | --- | --- |
-| Critérios de aceitação com cenário automatizado | **15 de 15 (100%)** | `scripts/rastreabilidade.py` |
-| Riscos de negócio cobertos | **13 de 13** | Matriz de rastreabilidade |
-| Cobertura de código (testes de componente e API) | **93%** (era 85%) | pytest-cov, no estágio "Testes de componente e API" |
-| Testes automáticos | **63** de componente/API + **27** cenários BDD | Relatórios JUnit no Jenkins |
+| Critérios de aceitação com cenário automatizado | **21 de 21 (100%)** | `scripts/rastreabilidade.py` |
+| Riscos de negócio cobertos | **19 de 19** | Matriz de rastreabilidade |
+| Cobertura de código (testes de componente e API) | **86%** (93% na v0.4.0; a diferença é o conector Kafka, testado só no ambiente QA) | pytest-cov, no estágio "Testes de componente e API" |
+| Testes automáticos | **86** pytest (componente, API, integração, contratos) + **33** cenários BDD | Relatórios JUnit no Jenkins |
 | Casos manuais automatizados total ou parcialmente | **8 de 10** | `casos-de-teste-manuais.md` |
 | Tempo de feedback de um commit | ~2 minutos até QA validado | Duração dos estágios no Jenkins |
 | Defeitos de treino detetados pela regressão | **5 de 5** (8 cenários falham em modo desafio) | Pipeline com `MODO_DESAFIO` |

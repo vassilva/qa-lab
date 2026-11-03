@@ -17,17 +17,20 @@ from app.model import Order, Trade
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEMA_FILE = os.path.join(BASE_DIR, "db", "schema.sql")
+SETTLEMENT_SCHEMA_FILE = os.path.join(BASE_DIR, "db", "schema_settlement.sql")
 
 
 class Database:
-    def __init__(self, url=None, sqlite_path=None):
+    def __init__(self, url=None, sqlite_path=None, schema_file=SCHEMA_FILE, sqlite_env="QA_LAB_SQLITE",
+                 default_sqlite="qa_lab.db"):
         self.url = url if url is not None else os.environ.get("DATABASE_URL", "")
+        self.schema_file = schema_file
         self.is_postgres = self.url.startswith(("postgres://", "postgresql://"))
         self._lock = threading.RLock()
         if self.is_postgres:
             self._connect_postgres()
         else:
-            path = sqlite_path or os.environ.get("QA_LAB_SQLITE", os.path.join(BASE_DIR, "data", "qa_lab.db"))
+            path = sqlite_path or os.environ.get(sqlite_env, os.path.join(BASE_DIR, "data", default_sqlite))
             if path != ":memory:":
                 os.makedirs(os.path.dirname(path), exist_ok=True)
             self.conn = sqlite3.connect(path, check_same_thread=False)
@@ -40,7 +43,17 @@ class Database:
 
     def _connect_postgres(self):
         import psycopg  # instalado no contentor via requirements.txt
-        self.conn = psycopg.connect(self.url, autocommit=False)
+        try:
+            self.conn = psycopg.connect(self.url, autocommit=False)
+        except psycopg.OperationalError as exc:
+            if "does not exist" not in str(exc):
+                raise
+            # Cada sistema tem a sua base de dados: cria-a na primeira utilização (ex.: "settlement")
+            base, _, dbname = self.url.rpartition("/")
+            dbname = dbname.split("?")[0]
+            with psycopg.connect(base + "/postgres", autocommit=True) as admin:
+                admin.execute(f'CREATE DATABASE "{dbname}"')
+            self.conn = psycopg.connect(self.url, autocommit=False)
 
     # ------------------------------------------------------------------ utilitários
     def execute(self, statement, params=None):
@@ -72,7 +85,7 @@ class Database:
             self.conn.rollback()
 
     def create_schema(self):
-        with open(SCHEMA_FILE, encoding="utf-8") as f:
+        with open(self.schema_file, encoding="utf-8") as f:
             lines = [ln for ln in f.read().splitlines() if not ln.strip().startswith("--")]
         with self._lock:
             for statement in [s.strip() for s in "\n".join(lines).split(";") if s.strip()]:
@@ -81,9 +94,15 @@ class Database:
 
     def reset(self):
         with self._lock:
-            for table in ("settlement_instructions", "trades", "orders", "system_state"):
-                self.execute(f"DELETE FROM {table}")
+            for table in self.tables():
+                if table != "system_state":
+                    self.execute(f"DELETE FROM {table}")
             self.commit()
+
+    def tables(self):
+        with open(self.schema_file, encoding="utf-8") as f:
+            import re
+            return re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", f.read())[::-1]   # filhos antes dos pais
 
     def ping(self):
         try:
@@ -138,22 +157,62 @@ class Database:
     def insert_instruction(self, i):
         self.execute(
             """INSERT INTO settlement_instructions
-                 (instruction_id, trade_id, symbol, qty, amount, trade_date, intended_settlement_date, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (i["instruction_id"], i["trade_id"], i["symbol"], i["qty"], i["amount"], i["trade_date"],
-             i["intended_settlement_date"], i["status"]),
+                 (instruction_id, trade_id, event_id, symbol, qty, amount, buy_order_id, sell_order_id,
+                  trade_date, intended_settlement_date, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (i["instruction_id"], i["trade_id"], i["event_id"], i["symbol"], i["qty"], i["amount"], i["buy_order_id"],
+             i["sell_order_id"], i["trade_date"], i["intended_settlement_date"], i["status"]),
         )
 
-    def update_instruction(self, instruction_id, status, settled_on):
+    def update_instruction(self, instruction_id, status, settled_on, fail_reason=None, attempt=False):
         self.execute(
-            """UPDATE settlement_instructions
-               SET status = ?, settled_on = ?, updated_at = CURRENT_TIMESTAMP
+            f"""UPDATE settlement_instructions
+               SET status = ?, settled_on = ?, fail_reason = ?, updated_at = CURRENT_TIMESTAMP
+                   {", attempts = attempts + 1" if attempt else ""}
                WHERE instruction_id = ?""",
-            (status, settled_on, instruction_id),
+            (status, settled_on, fail_reason, instruction_id),
         )
 
-    _SI_COLUMNS = ("instruction_id, trade_id, symbol, qty, amount, trade_date, intended_settlement_date, "
-                   "status, settled_on")
+    def instruction_for_trade(self, trade_id):
+        rows = self._rows(f"SELECT {self._SI_COLUMNS} FROM settlement_instructions WHERE trade_id = ?", (trade_id,))
+        return rows[0] if rows else None
+
+    def insert_rejected_event(self, reason, payload):
+        row = self._rows("SELECT COALESCE(MAX(id), 0) + 1 AS n FROM rejected_events")[0]
+        self.execute("INSERT INTO rejected_events (id, reason, payload) VALUES (?, ?, ?)", (row["n"], reason[:500], payload))
+
+    def list_rejected_events(self):
+        return self._rows("SELECT id, received_at, reason, payload FROM rejected_events ORDER BY id DESC")
+
+    # ------------------------------------------------------------------ outbox (Trading)
+    def insert_outbox(self, event_id, topic, key, payload):
+        self.execute("INSERT INTO outbox_events (event_id, topic, event_key, payload) VALUES (?, ?, ?, ?)",
+                     (event_id, topic, key, payload))
+
+    def pending_outbox(self, limit=100):
+        return self._rows("SELECT event_id, topic, event_key, payload, attempts FROM outbox_events "
+                          "WHERE published_at IS NULL ORDER BY created_at, event_id LIMIT ?", (limit,))
+
+    def mark_published(self, event_id):
+        self.execute("UPDATE outbox_events SET published_at = CURRENT_TIMESTAMP, attempts = attempts + 1, "
+                     "last_error = NULL WHERE event_id = ?", (event_id,))
+
+    def mark_failed(self, event_id, error):
+        self.execute("UPDATE outbox_events SET attempts = attempts + 1, last_error = ? WHERE event_id = ?",
+                     (error[:300], event_id))
+
+    def outbox_event_for_trade(self, trade_id):
+        rows = self._rows("SELECT event_id, payload FROM outbox_events WHERE event_key = ?", (trade_id,))
+        return rows[0] if rows else None
+
+    def outbox_stats(self):
+        r = self._rows("SELECT COUNT(*) AS total, "
+                       "SUM(CASE WHEN published_at IS NULL THEN 1 ELSE 0 END) AS pendentes, "
+                       "MAX(published_at) AS ultima_publicacao FROM outbox_events")[0]
+        return {"total": int(r["total"] or 0), "pending": int(r["pendentes"] or 0), "last_published_at": r["ultima_publicacao"]}
+
+    _SI_COLUMNS = ("instruction_id, trade_id, event_id, symbol, qty, amount, buy_order_id, sell_order_id, trade_date, "
+                   "intended_settlement_date, status, fail_reason, attempts, settled_on")
 
     def get_instruction(self, instruction_id):
         rows = self._rows(f"SELECT {self._SI_COLUMNS} FROM settlement_instructions WHERE instruction_id = ?",
@@ -168,7 +227,7 @@ class Database:
 
     def due_instructions(self, business_date):
         return self._rows(f"SELECT {self._SI_COLUMNS} FROM settlement_instructions "
-                          "WHERE status <> 'SETTLED' AND intended_settlement_date <= ? "
+                          "WHERE status IN ('PENDING', 'FAILED', 'ON_HOLD') AND intended_settlement_date <= ? "
                           "ORDER BY instruction_id", (business_date,))
 
     # ------------------------------------------------------------------ estado do sistema
