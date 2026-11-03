@@ -18,6 +18,8 @@ from app.model import Order, Trade
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEMA_FILE = os.path.join(BASE_DIR, "db", "schema.sql")
 SETTLEMENT_SCHEMA_FILE = os.path.join(BASE_DIR, "db", "schema_settlement.sql")
+MIGRATIONS_DIR = os.path.join(BASE_DIR, "db", "migrations")
+KEEP_ON_RESET = {"system_state", "schema_migrations"}     # environment state, not test data
 
 
 class Database:
@@ -36,6 +38,7 @@ class Database:
             self.conn = sqlite3.connect(path, check_same_thread=False)
             self.conn.execute("PRAGMA foreign_keys = ON")
         self.create_schema()
+        self.apply_migrations()
 
     @property
     def engine_name(self):
@@ -92,10 +95,59 @@ class Database:
                 self.execute(statement)
             self.commit()
 
+    @property
+    def migrations_dir(self):
+        """db/migrations/trading for schema.sql, db/migrations/settlement for schema_settlement.sql."""
+        name = os.path.basename(self.schema_file)[:-4]                 # schema / schema_settlement
+        return os.path.join(MIGRATIONS_DIR, "trading" if name == "schema" else name.replace("schema_", ""))
+
+    def apply_migrations(self):
+        """Applies the numbered .sql files in migrations_dir that this database has not run yet (DEF-016).
+
+        create_schema() only CREATES what is missing; a migration is how a version REMOVES or CHANGES structure,
+        so environments upgraded from an older version end up with the same schema as a fresh install."""
+        import glob
+        from app.logs import get_logger
+        folder = self.migrations_dir
+        if not os.path.isdir(folder):
+            return []
+        with self._lock:
+            applied = {r["version"] for r in self._rows("SELECT version FROM schema_migrations")}
+            done = []
+            for path in sorted(glob.glob(os.path.join(folder, "*.sql"))):
+                version = os.path.basename(path)[:-4]
+                if version in applied:
+                    continue
+                with open(path, encoding="utf-8") as f:
+                    lines = [ln for ln in f.read().splitlines() if not ln.strip().startswith("--")]
+                for statement in [s.strip() for s in "\n".join(lines).split(";") if s.strip()]:
+                    self.execute(statement)
+                self.execute("INSERT INTO schema_migrations (version) VALUES (?)", (version,))
+                self.commit()
+                done.append(version)
+                get_logger("DB").info("Migration %s applied", version)
+            return done
+
+    def actual_tables(self):
+        """Tables that really exist in the database (to compare with the expected schema)."""
+        sql = ("SELECT name AS table_name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+               if not self.is_postgres else
+               "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")
+        with self._lock:
+            rows = self._rows(sql)
+            self.rollback()
+        return sorted(r["table_name"] for r in rows)
+
+    def schema_check(self):
+        """Expected tables (from the schema file) vs. tables that exist: unexpected ones are leftovers (DEF-016)."""
+        expected, actual = set(self.tables()), set(self.actual_tables())
+        return {"schema_ok": expected == actual,
+                "unexpected_tables": sorted(actual - expected), "missing_tables": sorted(expected - actual)}
+
     def reset(self):
         with self._lock:
             for table in self.tables():
-                if table != "system_state":
+                if table not in KEEP_ON_RESET:
                     self.execute(f"DELETE FROM {table}")
             self.commit()
 

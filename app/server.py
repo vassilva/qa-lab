@@ -229,6 +229,7 @@ def health():
         db_ok = database.ping()
         outbox = database.outbox_stats()
         database.rollback()
+        schema = database.schema_check() if db_ok else {"schema_ok": False}
         orders, trades_ = len(engine.orders), len(engine.trades)
     try:
         st_status, _ = settlement_api.request("GET", "/health", timeout=2)
@@ -238,7 +239,7 @@ def health():
     body = dict(status="UP" if db_ok else "DEGRADED", service="trading", environment=ENV_NAME, version=APP_VERSION,
                 database=database.engine_name, database_ok=db_ok, challenge_mode=challenge_mode(),
                 orders=orders, trades=trades_, bus=bus.name, bus_ok=bus.ping(), settlement_ok=settlement_ok,
-                outbox_pending=outbox["pending"])
+                outbox_pending=outbox["pending"], **schema)
     return jsonify(body), 200 if db_ok else 503
 
 

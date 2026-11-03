@@ -25,6 +25,20 @@ Settlement never reads the Trading database: trades reach it as Kafka messages, 
 | settlement | `rejected_events` | `id` | Messages that broke the contract (also in the `trades.executed.dlq` topic) |
 | settlement | `system_state` | `state_key` | System business date |
 
+## Schema migrations
+
+Each service creates its missing tables at startup (`db/schema.sql`, `db/schema_settlement.sql`), but creating is not
+enough when a version **removes or changes** structure. Those changes are numbered SQL files in `db/migrations/<database>/`
+(`trading/`, `settlement/`), applied once each at startup and recorded in the `schema_migrations` table.
+
+| Check | How |
+| --- | --- |
+| Which migrations ran | `SELECT * FROM schema_migrations;` (in each database) |
+| Does the database have exactly the expected tables? | `GET /health` → `schema_ok`, `unexpected_tables`, `missing_tables` (also checked by the smoke test) |
+
+Example: `trading/001_drop_legacy_settlement_instructions.sql` removed a table left behind in `qa_lab` when Settlement
+moved to its own database in v0.5 (DEF-016).
+
 ## QA queries
 
 | File | Database | Contents |

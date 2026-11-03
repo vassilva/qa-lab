@@ -6,6 +6,7 @@
 # 2. the Order Entry Gateway accepts an order (and cancels it, to keep the environment clean)
 # 3. the integration is healthy: bus (Kafka), Settlement (consumer ready) and the T2S simulator
 # 4. Settlement responds (business date and instructions)
+# 5. Each database has exactly the expected tables: no leftovers from older versions (DEF-016)
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
@@ -43,5 +44,11 @@ pass "integration: bus $(jq -r .bus <<<"$integ") · Settlement UP, consumer read
 bd="$(curl -fsS "$BASE_URL/api/business-date" | jq -r .business_date)" || fail "business date unavailable"
 curl -fsS "$BASE_URL/api/settlement/instructions" >/dev/null || fail "settlement does not respond"
 pass "settlement available · business date $bd"
+
+[[ "$(jq -r .schema_ok <<<"$health")" == "true" ]] \
+  || fail "Trading database schema: unexpected $(jq -c .unexpected_tables <<<"$health") · missing $(jq -c .missing_tables <<<"$health")"
+[[ "$(jq -r .settlement.schema_ok <<<"$integ")" == "true" ]] \
+  || fail "Settlement database schema: unexpected $(jq -c .settlement.unexpected_tables <<<"$integ") · missing $(jq -c .settlement.missing_tables <<<"$integ")"
+pass "database schemas as expected (Trading and Settlement)"
 
 echo "Smoke test passed"
