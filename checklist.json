@@ -119,7 +119,7 @@
         {
           "id": "2.2",
           "requirement": "Reproduce, analyse, document, and track defects",
-          "evidence": "11 bug reports (5 de treino em modo desafio, 6 reais) com passos, evidências de API, log e SQL; registo no Jira no item F1",
+          "evidence": "12 bug reports (5 de treino em modo desafio, 7 reais) com passos, evidências de API, log e SQL; registo no Jira no item F1",
           "link": "/docs/defeitos/README.md",
           "done": true
         },

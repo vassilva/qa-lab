@@ -30,4 +30,4 @@ Gerada automaticamente por `scripts/rastreabilidade.py` em 2026-11-03. Não edit
 
 - Critérios de aceitação: **21**, com cenário automatizado: **21** (100%).
 - Riscos de negócio cobertos por critérios com cenário: **19 de 19**.
-- Casos manuais: **10** · Defeitos registados: **11**.
+- Casos manuais: **10** · Defeitos registados: **12**.
