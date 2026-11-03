@@ -36,7 +36,7 @@ Retrospective of building the lab (2–3 November 2026), with real facts from th
 | A6 | SQL integrity checks as a pipeline stage | QA | Planned (automation plan #1) |
 | A7 | UI tests with Playwright for 3 manual cases | QA | Planned (automation plan #3) |
 | A8 | Log the defects in a personal test Jira | QA | Planned (F1) |
-| A9 | Safe tool update script (quiet down → rebuild → resume) | QA | ✓ Done (DEF-008) |
+| A9 | Safe tool update script (pause job → rebuild → resume) | QA | ✓ Done (DEF-008, corrected by DEF-014) |
 
 ## Metrics to track between releases
 

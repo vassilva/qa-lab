@@ -30,4 +30,4 @@ Generated automatically by `scripts/traceability.py` on 2026-11-03. Do not edit 
 
 - Acceptance criteria: **21**, with an automated scenario: **21** (100%).
 - Business risks covered by criteria with a scenario: **19 of 19**.
-- Manual test cases: **10** · Defects logged: **13**.
+- Manual test cases: **10** · Defects logged: **14**.

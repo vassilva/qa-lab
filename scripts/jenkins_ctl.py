@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
-Lab Jenkins control (technical fix for DEF-008).
+Lab Jenkins control (technical fix for DEF-008, corrected by DEF-014).
 
 Runs INSIDE the Jenkins container (standard library only):
-    python3 /tmp/jenkins_ctl.py quiet-down   # starts no new builds; waits for running builds to finish
-    python3 /tmp/jenkins_ctl.py resume       # accepts builds again
+    python3 /tmp/jenkins_ctl.py pause    # disables the pipeline job (no new builds) and waits for running builds to finish
+    python3 /tmp/jenkins_ctl.py resume   # enables the job again (and cancels any quiet down left behind)
     python3 /tmp/jenkins_ctl.py status
+
+Why the job is disabled instead of using "quiet down" (DEF-014): in quiet down mode Jenkins also PAUSES
+running Pipeline builds ("Pausing (Preparing for shutdown)"), so waiting for them to finish never ends.
+A disabled job starts no new builds (not even from SCM polling) while running builds carry on normally.
 
 Exit codes: 0 = OK, 1 = builds still running at the time limit, 2 = connection error.
 """
@@ -18,7 +22,9 @@ import time
 import urllib.request
 
 URL = "http://localhost:8080"
+JOB = "/job/qa-lab-pipeline"
 AUTH = "Basic " + base64.b64encode(b"admin:admin").decode()
+WAIT_SECONDS = 900
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
 
@@ -26,7 +32,7 @@ def call(path, method="GET"):
     req = urllib.request.Request(URL + path, method=method, headers={"Authorization": AUTH})
     if method == "POST":
         crumb = json.load(opener.open(urllib.request.Request(URL + "/crumbIssuer/api/json",
-                                                             headers={"Authorization": AUTH})))
+                                                             headers={"Authorization": AUTH}), timeout=15))
         req.add_header(crumb["crumbRequestField"], crumb["crumb"])
     with opener.open(req, timeout=15) as r:
         body = r.read()
@@ -43,10 +49,11 @@ def running_builds():
 def main():
     action = sys.argv[1] if len(sys.argv) > 1 else "status"
     try:
-        if action == "quiet-down":
-            call("/quietDown", "POST")
-            print("Jenkins paused: it will not start new builds.")
-            deadline = time.time() + 600
+        if action in ("pause", "quiet-down"):
+            call("/cancelQuietDown", "POST")          # never leave running builds paused (DEF-014)
+            call(JOB + "/disable", "POST")
+            print("Pipeline job disabled: Jenkins will not start new builds.")
+            deadline = time.time() + WAIT_SECONDS
             while True:
                 busy, names = running_builds()
                 if busy == 0:
@@ -60,11 +67,13 @@ def main():
                 time.sleep(10)
         elif action == "resume":
             call("/cancelQuietDown", "POST")
-            print("Jenkins accepts builds again.")
+            call(JOB + "/enable", "POST")
+            print("Pipeline job enabled: Jenkins accepts builds again.")
         else:
             info = call("/api/json?tree=quietingDown")
+            job = call(JOB + "/api/json?tree=buildable")
             busy, names = running_builds()
-            print(f"Paused: {info.get('quietingDown')} - running builds: {busy} {names}")
+            print(f"Job enabled: {job.get('buildable')} - quiet down: {info.get('quietingDown')} - running builds: {busy} {names}")
         return 0
     except OSError as exc:
         print(f"Error talking to Jenkins: {exc}")

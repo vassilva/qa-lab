@@ -95,12 +95,12 @@ docker compose up -d --build            # Jenkins + Adminer (takes a few minutes
 
 Docker Desktop needs **~6 GB of memory** (Settings → Resources): each environment has Kafka and three services.
 
-**Updating the lab to a new version** (prevents DEF-008):
+**Updating the lab to a new version** (prevents DEF-008 and DEF-014):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\update_tools.ps1 -PauseOnly   # 1. pause Jenkins
+powershell -ExecutionPolicy Bypass -File scripts\update_tools.ps1 -PauseOnly   # 1. pause the pipeline (running builds finish)
 # 2. replace the project files and commit
-powershell -ExecutionPolicy Bypass -File scripts\update_tools.ps1              # 3. rebuild and restart Jenkins
+powershell -ExecutionPolicy Bypass -File scripts\update_tools.ps1              # 3. rebuild, restart Jenkins and resume the pipeline
 ```
 
 Then open http://localhost:8090, sign in with `admin` / `admin`, open **qa-lab-pipeline** and click
