@@ -53,13 +53,14 @@ done
 # has been assigned the partition. After a redeploy that can take 10-20 s (Kafka waits for the old consumer to expire).
 SETTLEMENT="qa-lab-${ENV_NAME}-settlement"
 for i in $(seq 1 90); do
-  if [[ "$(docker exec "$SETTLEMENT" curl -fsS localhost:8001/health 2>/dev/null | jq -r .consumer_ready)" == "true" ]]; then
+  # runs INSIDE the Settlement container (curl and jq exist there, not in the Jenkins container)
+  if [[ "$(docker exec "$SETTLEMENT" sh -c 'curl -fsS localhost:8001/health | jq -r .consumer_ready' 2>/dev/null)" == "true" ]]; then
     echo "==> Settlement consumer ready (${i}s)"
     break
   fi
   if [[ "$i" == "90" ]]; then
     echo "ERROR: the Settlement consumer has no Kafka partition after 90 s. Last log lines:" >&2
-    docker logs --tail 20 "$SETTLEMENT" >&2 || true
+    docker exec "$SETTLEMENT" tail -n 20 /var/log/qa-lab/settlement.log >&2 || docker logs --tail 20 "$SETTLEMENT" >&2 || true
     exit 1
   fi
   sleep 1
