@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Usado pelo Jenkins: corre os testes unitários e de API dentro da imagem acabada de construir
-# (num contentor temporário, sem tocar nos ambientes) e copia os relatórios para reports/unit/.
+# Used by Jenkins: runs the unit and API tests inside the freshly built image
+# (in a temporary container, without touching the environments) and copies the reports to reports/unit/.
 #
-# Uso: bash scripts/ci_unit_tests.sh <imagem>
+# Usage: bash scripts/ci_unit_tests.sh <image>
 set -uo pipefail
 
-IMAGE="${1:?indica a imagem, ex.: qa-lab:0.2.0-1a2b3c4}"
+IMAGE="${1:?give the image, e.g. qa-lab:0.2.0-1a2b3c4}"
 NAME="qa-lab-unit-$$"
 
 docker run --name "$NAME" --entrypoint bash "$IMAGE" scripts/run_tests.sh unit

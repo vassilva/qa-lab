@@ -1,9 +1,9 @@
--- Base de dados do sistema SETTLEMENT (compatível com PostgreSQL e SQLite)
--- Sistema separado do Trading: recebe os negócios por mensagens (Kafka), nunca lê a base do Trading.
+-- SETTLEMENT system database (compatible with PostgreSQL and SQLite)
+-- A system separate from Trading: receives trades as messages (Kafka) and never reads the Trading database.
 
 CREATE TABLE IF NOT EXISTS settlement_instructions (
     instruction_id           VARCHAR(20)   PRIMARY KEY,
-    trade_id                 VARCHAR(20)   NOT NULL UNIQUE,      -- idempotência: no máximo 1 instrução por negócio
+    trade_id                 VARCHAR(20)   NOT NULL UNIQUE,      -- idempotency: at most 1 instruction per trade
     event_id                 VARCHAR(32)   NOT NULL,
     symbol                   VARCHAR(10)   NOT NULL,
     qty                      INTEGER       NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS settlement_instructions (
     updated_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Mensagens que não respeitam o contrato: também enviadas para o tópico trades.executed.dlq
+-- Messages that break the contract: also sent to the trades.executed.dlq topic
 CREATE TABLE IF NOT EXISTS rejected_events (
     id           INTEGER       PRIMARY KEY,
     received_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,

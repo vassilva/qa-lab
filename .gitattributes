@@ -1,5 +1,5 @@
-# Ficheiros usados dentro dos contentores Linux: sempre com fim de linha Linux (LF),
-# mesmo quando o repositório é editado no Windows (evita erros "bad interpreter" e "\r")
+# Files used inside the Linux containers: always with Linux line endings (LF),
+# even when the repository is edited on Windows (avoids "bad interpreter" and "\r" errors)
 *.sh        text eol=lf
 *.env       text eol=lf
 Dockerfile  text eol=lf

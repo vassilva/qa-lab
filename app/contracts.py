@@ -1,9 +1,9 @@
 """
-Validação de mensagens contra os contratos JSON Schema em contracts/.
+Validation of messages against the JSON Schema contracts in contracts/.
 
-Implementa o subconjunto de JSON Schema usado pelos contratos do projeto (type, required, properties,
-additionalProperties, pattern, const, enum, minimum, exclusiveMinimum), sem dependências externas.
-Os ficheiros de contrato são JSON Schema standard: podem ser verificados com qualquer ferramenta.
+Implements the subset of JSON Schema used by the project's contracts (type, required, properties,
+additionalProperties, pattern, const, enum, minimum, exclusiveMinimum), with no external dependencies.
+The contract files are standard JSON Schema: any tool can check them.
 """
 
 import json
@@ -21,32 +21,32 @@ def load(name):
 
 
 def errors(value, schema, path="$"):
-    """Lista de erros (vazia = válido)."""
+    """List of errors (empty = valid)."""
     out = []
     if "const" in schema and value != schema["const"]:
-        return [f"{path}: esperado {schema['const']!r}, obtido {value!r}"]
+        return [f"{path}: expected {schema['const']!r}, got {value!r}"]
     if "enum" in schema and value not in schema["enum"]:
-        return [f"{path}: {value!r} não está em {schema['enum']}"]
+        return [f"{path}: {value!r} is not one of {schema['enum']}"]
     t = schema.get("type")
     if t:
         ok = isinstance(value, _TYPES[t]) and not (t in ("integer", "number") and isinstance(value, bool))
         if not ok:
-            return [f"{path}: tipo esperado {t}, obtido {type(value).__name__}"]
+            return [f"{path}: expected type {t}, got {type(value).__name__}"]
     if isinstance(value, str) and "pattern" in schema and not re.search(schema["pattern"], value):
-        out.append(f"{path}: {value!r} não respeita o padrão {schema['pattern']}")
+        out.append(f"{path}: {value!r} does not match pattern {schema['pattern']}")
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         if "minimum" in schema and value < schema["minimum"]:
-            out.append(f"{path}: {value} < mínimo {schema['minimum']}")
+            out.append(f"{path}: {value} < minimum {schema['minimum']}")
         if "exclusiveMinimum" in schema and value <= schema["exclusiveMinimum"]:
-            out.append(f"{path}: {value} tem de ser > {schema['exclusiveMinimum']}")
+            out.append(f"{path}: {value} must be > {schema['exclusiveMinimum']}")
     if isinstance(value, dict):
         props = schema.get("properties", {})
         for req in schema.get("required", []):
             if req not in value:
-                out.append(f"{path}: campo obrigatório em falta: {req}")
+                out.append(f"{path}: missing required field: {req}")
         if schema.get("additionalProperties") is False:
             for extra in sorted(set(value) - set(props)):
-                out.append(f"{path}: campo não previsto no contrato: {extra}")
+                out.append(f"{path}: field not in contract: {extra}")
         for k, sub in props.items():
             if k in value:
                 out += errors(value[k], sub, f"{path}.{k}")

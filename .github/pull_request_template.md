@@ -1,17 +1,17 @@
-## O quê e porquê
-<!-- Uma ou duas frases. Ligar à história ou ao defeito: DEF-NNN / AC-XNN -->
+## What and why
+<!-- One or two sentences. Link to the story or the defect: DEF-NNN / AC-XNN -->
 
-## Como foi testado
-- [ ] Testes de componente acrescentados/atualizados (`tests/`)
-- [ ] Cenário BDD que cobre o critério de aceitação (`features/`), com etiqueta de prioridade e `@AC-…`
-- [ ] Para um defeito: o teste novo falha sem a correção e passa com ela
-- [ ] Pipeline verde (QA · Regressão BDD)
+## How it was tested
+- [ ] Component tests added/updated (`tests/`)
+- [ ] BDD scenario covering the acceptance criterion (`features/`), with a priority tag and `@AC-…`
+- [ ] For a defect: the new test fails without the fix and passes with it
+- [ ] Green pipeline (QA · BDD regression)
 
-## Impacto e risco
-<!-- Componentes tocados, riscos da matriz afetados, migração de dados, alterações de configuração -->
+## Impact and risk
+<!-- Components touched, risk matrix entries affected, contract changes (OpenAPI / event schema), data migration, configuration changes -->
 
-## Checklist do revisor (QA)
-- [ ] Os critérios de aceitação estão cobertos
-- [ ] Casos-limite considerados
-- [ ] Logs úteis para diagnóstico (com a etiqueta do componente)
-- [ ] Documentação e matriz de rastreabilidade atualizadas
+## Reviewer checklist (QA)
+- [ ] The acceptance criteria are covered
+- [ ] Edge cases considered
+- [ ] Useful logs for diagnosis (with the component tag)
+- [ ] Documentation and traceability matrix updated

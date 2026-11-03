@@ -1,4 +1,4 @@
-"""Fluxos de ponta a ponta pela API: ordem → negócio → instrução de liquidação → liquidada em T+2."""
+"""End-to-end flows through the API: order → trade → settlement instruction → settled at T+2."""
 
 
 def _order(client, side, qty, price, symbol="EDP"):
@@ -10,17 +10,17 @@ def test_health(client):
     assert body["status"] == "UP" and body["database_ok"] is True
 
 
-def test_ordem_rejeitada_devolve_422(client):
+def test_rejected_order_returns_422(client):
     r = _order(client, "BUY", 10_001, 4.50)
     assert r.status_code == 422
-    assert r.get_json()["order"]["reject_reason"] == "Quantidade inválida"
+    assert r.get_json()["order"]["reject_reason"] == "Invalid quantity"
 
 
-def test_pedido_mal_formado_devolve_400(client):
+def test_malformed_request_returns_400(client):
     assert client.post("/api/orders", json={"symbol": "EDP"}).status_code == 400
 
 
-def test_negocio_gera_instrucao_t_mais_2(client):
+def test_trade_creates_t_plus_2_instruction(client):
     _order(client, "SELL", 100, 4.50)
     _order(client, "BUY", 100, 4.50)
     [ins] = client.get("/api/settlement/instructions").get_json()
@@ -29,18 +29,18 @@ def test_negocio_gera_instrucao_t_mais_2(client):
     assert (ins["trade_date"], ins["intended_settlement_date"]) == ("2026-11-02", "2026-11-04")
 
 
-def test_eod_liquida_so_na_data_prevista(client):
+def test_eod_settles_only_on_intended_date(client):
     _order(client, "SELL", 100, 4.50)
-    _order(client, "BUY", 100, 4.50)                      # negociado segunda 2/11, liquida quarta 4/11
-    assert client.post("/api/eod").get_json()["settled"] == 0      # fecho de segunda
-    assert client.post("/api/eod").get_json()["settled"] == 0      # fecho de terça
-    result = client.post("/api/eod").get_json()                    # fecho de quarta
+    _order(client, "BUY", 100, 4.50)                      # traded Monday 2/11, settles Wednesday 4/11
+    assert client.post("/api/eod").get_json()["settled"] == 0      # Monday EOD
+    assert client.post("/api/eod").get_json()["settled"] == 0      # Tuesday EOD
+    result = client.post("/api/eod").get_json()                    # Wednesday EOD
     assert (result["business_date"], result["settled"]) == ("2026-11-04", 1)
     [ins] = client.get("/api/settlement/instructions").get_json()
     assert (ins["status"], ins["settled_on"]) == ("SETTLED", "2026-11-04")
 
 
-def test_instrucao_retida_nao_liquida(client):
+def test_held_instruction_does_not_settle(client):
     _order(client, "SELL", 100, 4.50)
     _order(client, "BUY", 100, 4.50)
     assert client.post("/api/settlement/instructions/S00001/hold").status_code == 200
@@ -53,7 +53,7 @@ def test_instrucao_retida_nao_liquida(client):
     assert client.get("/api/settlement/instructions").get_json()[0]["status"] == "SETTLED"
 
 
-def test_hold_numa_instrucao_liquidada_e_recusado(client):
+def test_hold_on_settled_instruction_is_refused(client):
     _order(client, "SELL", 100, 4.50)
     _order(client, "BUY", 100, 4.50)
     for _ in range(3):
@@ -61,16 +61,16 @@ def test_hold_numa_instrucao_liquidada_e_recusado(client):
     assert client.post("/api/settlement/instructions/S00001/hold").status_code == 409
 
 
-def test_data_de_negocio_nao_aceita_fim_de_semana(client):
+def test_business_date_rejects_weekend(client):
     assert client.post("/api/business-date", json={"date": "2026-11-07"}).status_code == 400
 
 
-def test_eod_avanca_para_o_proximo_dia_util(client):
-    client.post("/api/business-date", json={"date": "2026-11-06"})          # sexta
+def test_eod_moves_to_next_business_day(client):
+    client.post("/api/business-date", json={"date": "2026-11-06"})          # Friday
     assert client.post("/api/eod").get_json()["next_business_date"] == "2026-11-09"
 
 
-def test_reconciliacao_entre_sistemas(client):
+def test_cross_system_reconciliation(client):
     _order(client, "SELL", 300, 4.50)
     _order(client, "BUY", 100, 4.50)
     _order(client, "BUY", 200, 4.55)
@@ -78,5 +78,5 @@ def test_reconciliacao_entre_sistemas(client):
     assert (r["ok"], r["trades"], r["instructions"]) == (True, 2, 2)
 
 
-def test_consola_sql_recusa_escrita(client):
+def test_sql_console_refuses_writes(client):
     assert client.post("/api/query", json={"sql": "DELETE FROM orders"}).status_code == 400

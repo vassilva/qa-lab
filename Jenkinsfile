@@ -1,26 +1,26 @@
-// Pipeline do QA Lab: Build → testes de componente → QA (smoke + regressão BDD) → UAT (smoke) → go/no-go
-// A mesma imagem (qa-lab:<versão>-<commit>) é testada em QA e promovida para UAT sem ser reconstruída.
-// Disparos: cada commit (verificação a cada 2 min), manual, e regressão noturna em QA (dias úteis às ~02:00,
-// sem passar para UAT).
+// QA Lab pipeline: Build → component tests → QA (smoke + BDD regression) → UAT (smoke) → go/no-go
+// The same image (qa-lab:<version>-<commit>) is tested in QA and promoted to UAT without being rebuilt.
+// Triggers: every commit (polled every 2 min), manual, and a nightly QA regression (weekdays around 02:00,
+// which does not go on to UAT).
 
 pipeline {
   agent any
 
   parameters {
     choice(
-      name: 'REGRESSAO',
-      choices: ['completa', 'critica'],
-      description: 'completa = todos os cenários BDD · critica = só os cenários @critico (quando o tempo é curto)'
+      name: 'REGRESSION',
+      choices: ['full', 'critical'],
+      description: 'full = every BDD scenario · critical = only @critical scenarios (when time is short)'
     )
     booleanParam(
-      name: 'MODO_DESAFIO',
+      name: 'CHALLENGE_MODE',
       defaultValue: false,
-      description: 'Liga os defeitos escondidos no ambiente QA (treino de análise de defeitos). A regressão vai falhar e a versão NÃO passa para UAT.'
+      description: 'Enables the hidden defects in the QA environment (defect analysis practice). The regression will fail and the version will NOT go to UAT.'
     )
   }
 
   triggers {
-    cron('H 2 * * 1-5')      // regressão noturna em QA, dias úteis
+    cron('H 2 * * 1-5')      // nightly QA regression, weekdays
   }
 
   options {
@@ -30,31 +30,31 @@ pipeline {
   }
 
   stages {
-    stage('Preparar') {
+    stage('Prepare') {
       steps {
         script {
           def version = readFile('VERSION').trim()
           def sha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
           env.APP_VERSION = "${version}-${sha}"
           env.IMAGE = "qa-lab:${env.APP_VERSION}"
-          env.BDD_TAGS = (params.REGRESSAO == 'critica') ? '@critico' : ''
+          env.BDD_TAGS = (params.REGRESSION == 'critical') ? '@critical' : ''
           currentBuild.displayName = "#${env.BUILD_NUMBER} · v${env.APP_VERSION}"
-          env.QA_LAB_CHALLENGE = params.MODO_DESAFIO ? '1' : '0'
-          def noturno = currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause') ? ' · noturna (só QA)' : ''
-          currentBuild.description = "Regressão ${params.REGRESSAO ?: 'completa'}${params.MODO_DESAFIO ? ' · MODO DESAFIO' : ''}${noturno}"
+          env.QA_LAB_CHALLENGE = params.CHALLENGE_MODE ? '1' : '0'
+          env.NIGHTLY = currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause') ? '1' : '0'
+          currentBuild.description = "${params.REGRESSION ?: 'full'} regression${params.CHALLENGE_MODE ? ' · CHALLENGE MODE' : ''}${env.NIGHTLY == '1' ? ' · nightly (QA only)' : ''}"
         }
         sh 'rm -rf reports && mkdir -p reports'
-        echo "Versão a validar: ${env.APP_VERSION}"
+        echo "Version under test: ${env.APP_VERSION}"
       }
     }
 
-    stage('Build da imagem') {
+    stage('Build image') {
       steps {
         sh 'docker build -t "$IMAGE" .'
       }
     }
 
-    stage('Testes de componente e API') {
+    stage('Component and API tests') {
       steps {
         sh 'bash scripts/ci_unit_tests.sh "$IMAGE"'
       }
@@ -72,7 +72,7 @@ pipeline {
       }
     }
 
-    stage('QA · Regressão BDD') {
+    stage('QA · BDD regression') {
       steps {
         sh 'docker exec -e BDD_TAGS="$BDD_TAGS" qa-lab-qa-app bash scripts/run_tests.sh bdd'
       }
@@ -98,7 +98,7 @@ pipeline {
       }
     }
 
-    stage('UAT · Resumo de testes') {
+    stage('UAT · Test summary') {
       when { not { triggeredBy 'TimerTrigger' } }
       steps {
         sh 'python3 scripts/test_summary.py reports "$APP_VERSION"'
@@ -109,10 +109,10 @@ pipeline {
       when { not { triggeredBy 'TimerTrigger' } }
       steps {
         timeout(time: 1, unit: 'DAYS') {
-          input message: "A versão ${env.APP_VERSION} está em UAT. Confirmaste o checklist de release (docs/qa/checklist-release.md)? Aprovar?",
+          input message: "Version ${env.APP_VERSION} is in UAT. Have you checked the release checklist (docs/qa/release-checklist.md)? Approve?",
                 ok: 'Go'
         }
-        echo "Release ${env.APP_VERSION} aprovada."
+        echo "Release ${env.APP_VERSION} approved."
       }
     }
   }
@@ -123,10 +123,16 @@ pipeline {
       archiveArtifacts allowEmptyArchive: true, artifacts: 'reports/**'
     }
     success {
-      echo "Pipeline concluído: ${env.APP_VERSION} aprovada em UAT."
+      script {
+        if (env.NIGHTLY == '1') {
+          echo "Nightly QA regression passed for ${env.APP_VERSION}."
+        } else {
+          echo "Pipeline finished: ${env.APP_VERSION} approved in UAT."
+        }
+      }
     }
     failure {
-      echo 'Pipeline falhou: ver o estágio a vermelho, o separador Tests e os relatórios arquivados. Se a falha foi num estágio "QA · …" ou anterior, a versão não chegou a UAT.'
+      echo 'Pipeline failed: check the red stage, the Tests tab and the archived reports. If the failure was in a "QA · …" stage or earlier, the version did not reach UAT.'
     }
   }
 }

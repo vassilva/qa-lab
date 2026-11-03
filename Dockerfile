@@ -1,4 +1,4 @@
-# Contentor Linux do QA Lab: a mesma imagem corre o Trading, o Settlement e o simulador T2S (variável SERVICE)
+# QA Lab Linux container: the same image runs Trading, Settlement and the T2S simulator (SERVICE variable)
 FROM python:3.12-slim-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         postgresql-client git jq tree \
     && rm -rf /var/lib/apt/lists/*
 
-# Terminal web (ttyd): binário oficial do projeto, porque não existe pacote no Debian 12
+# Web terminal (ttyd): the project's official binary, because there is no Debian 12 package
 ARG TTYD_VERSION=1.7.7
 RUN ARCH="$(uname -m)" \
     && curl -fsSL -o /usr/local/bin/ttyd \
@@ -14,7 +14,7 @@ RUN ARCH="$(uname -m)" \
     && chmod +x /usr/local/bin/ttyd \
     && ttyd --version
 
-# Utilizador sem privilégios de root, como num servidor real
+# Non-root user, as on a real server
 RUN useradd --create-home --shell /bin/bash qa \
     && mkdir -p /var/log/qa-lab /opt/qa-lab /var/lib/qa-lab/files \
     && chown -R qa:qa /var/log/qa-lab /opt/qa-lab /var/lib/qa-lab

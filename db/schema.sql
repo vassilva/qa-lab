@@ -1,12 +1,12 @@
--- Base de dados do sistema TRADING (compatível com PostgreSQL e SQLite)
--- A aplicação cria estas tabelas no arranque, se ainda não existirem.
+-- TRADING system database (compatible with PostgreSQL and SQLite)
+-- The application creates these tables at startup if they do not exist yet.
 
 CREATE TABLE IF NOT EXISTS orders (
     order_id      VARCHAR(20)   PRIMARY KEY,
     symbol        VARCHAR(10)   NOT NULL,
     side          VARCHAR(4)    NOT NULL CHECK (side IN ('BUY', 'SELL')),
     qty           INTEGER       NOT NULL,
-    price         NUMERIC(12,4),               -- NULL = ordem de mercado
+    price         NUMERIC(12,4),               -- NULL = market order
     remaining     INTEGER       NOT NULL,
     status        VARCHAR(20)   NOT NULL,
     reject_reason VARCHAR(100),
@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS trades (
     executed_at   TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Padrão "transactional outbox": o evento é gravado na MESMA transação que o negócio
--- e publicado no Kafka depois. Se o Kafka estiver em baixo, nada se perde: fica pendente aqui.
+-- "Transactional outbox" pattern: the event is stored in the SAME transaction as the trade
+-- and published to Kafka afterwards. If Kafka is down, nothing is lost: it stays pending here.
 CREATE TABLE IF NOT EXISTS outbox_events (
     event_id      VARCHAR(32)   PRIMARY KEY,
     topic         VARCHAR(100)  NOT NULL,

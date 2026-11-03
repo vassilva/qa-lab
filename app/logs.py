@@ -1,11 +1,11 @@
 """
-Logs do QA Lab.
+QA Lab logs.
 
-Todos os componentes escrevem no mesmo ficheiro, cada um com a sua etiqueta:
-    2026-11-03 10:15:02,118 INFO [OEG] Ordem O00001 aceite: SELL 100 EDP @ 4.50
+Each service writes to its own file, and each component uses its own tag:
+    2026-11-03 10:15:02,118 INFO [OEG] Order O00001 accepted: SELL 100 EDP @ 4.50
 
-Etiquetas: OEG (Order Entry Gateway), ME (Matching Engine), SETTLEMENT, API.
-Pasta: variável QA_LAB_LOG_DIR (no contentor: /var/log/qa-lab), ficheiro qa-lab.log
+Tags: OEG (Order Entry Gateway), ME (Matching Engine), SETTLEMENT, CONSUMER, T2S, API.
+Folder: QA_LAB_LOG_DIR (in the container: /var/log/qa-lab); file: QA_LAB_LOG_FILE
 """
 
 import logging

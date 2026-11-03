@@ -1,33 +1,34 @@
 #!/usr/bin/env bash
-# Fecho do dia (End of Day) pela linha de comandos, como um job batch de um sistema financeiro:
-# 1) verifica o serviço, 2) corre o EOD, 3) valida o relatório CSV, 4) mostra o resumo.
+# End of Day (EOD) from the command line, like a batch job in a financial system:
+# 1) checks the service, 2) runs the EOD, 3) validates the CSV report, 4) prints the summary.
 #
-# Uso: bash scripts/eod.sh            (dentro do contentor QA ou UAT)
-# Códigos de saída: 0 = OK · 1 = serviço indisponível · 2 = EOD falhou · 3 = relatório em falta ou inconsistente
+# Usage: bash scripts/eod.sh            (inside the QA or UAT Trading container)
+# Exit codes: 0 = OK · 1 = service unavailable · 2 = EOD failed · 3 = report missing or inconsistent
 set -uo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
 EOD_DIR="${QA_LAB_LOG_DIR:-/var/log/qa-lab}/eod"
 
-curl -fsS "$BASE_URL/health" >/dev/null || { echo "ERRO: serviço indisponível em $BASE_URL" >&2; exit 1; }
+curl -fsS "$BASE_URL/health" >/dev/null || { echo "ERROR: service unavailable at $BASE_URL" >&2; exit 1; }
 
-result="$(curl -fsS -X POST "$BASE_URL/api/eod")" || { echo "ERRO: o fecho do dia falhou" >&2; exit 2; }
+result="$(curl -fsS -X POST "$BASE_URL/api/eod")" || { echo "ERROR: the end of day failed" >&2; exit 2; }
 bd="$(jq -r .business_date <<<"$result")"
 settled="$(jq -r .settled <<<"$result")"
 pending="$(jq -r .not_settled <<<"$result")"
 next_bd="$(jq -r .next_business_date <<<"$result")"
+t2s="$(jq -r .t2s <<<"$result")"
 
 report="$EOD_DIR/settlement_${bd//-/}.csv"
 if [[ ! -f "$report" ]]; then
-  echo "ERRO: relatório $report não encontrado" >&2
+  echo "ERROR: report $report not found" >&2
   exit 3
 fi
-# O relatório tem de ter uma linha por instrução tratada (+1 de cabeçalho)
+# The report must have one row per instruction processed (+1 header row)
 rows=$(( $(wc -l < "$report") - 1 ))
 if (( rows != settled + pending )); then
-  echo "ERRO: o relatório tem $rows linhas, mas o EOD tratou $((settled + pending)) instruções" >&2
+  echo "ERROR: the report has $rows rows, but the EOD processed $((settled + pending)) instructions" >&2
   exit 3
 fi
 
-echo "EOD de $bd concluído: $settled liquidadas · $pending por liquidar · relatório $report"
-echo "Próxima data de negócio: $next_bd"
+echo "EOD for $bd finished: $settled settled · $pending not settled · T2S: $t2s · report $report"
+echo "Next business date: $next_bd"

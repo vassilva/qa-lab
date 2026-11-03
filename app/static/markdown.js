@@ -1,6 +1,6 @@
-// Conversor de Markdown mínimo para os documentos de QA (sem dependências, funciona offline).
-// Suporta: títulos, parágrafos, listas (com marcas, numeradas e checkboxes), tabelas,
-// blocos de código, código em linha, negrito, itálico, links e linhas horizontais.
+// Minimal Markdown converter for the QA documents (no dependencies, works offline).
+// Supports: headings, paragraphs, lists (bulleted, numbered and checkboxes), tables,
+// code blocks, inline code, bold, italic, links and horizontal rules.
 (function () {
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -23,15 +23,15 @@
     let i = 0;
     while (i < lines.length) {
       const line = lines[i];
-      if (/^```/.test(line)) {                                   // bloco de código
+      if (/^```/.test(line)) {                                   // code block
         const buf = []; i++;
         while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
         out.push(`<pre><code>${esc(buf.join("\n"))}</code></pre>`); i++; continue;
       }
-      const h = line.match(/^(#{1,4})\s+(.*)$/);                 // título
+      const h = line.match(/^(#{1,4})\s+(.*)$/);                 // heading
       if (h) { out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
       if (/^\s*---+\s*$/.test(line)) { out.push("<hr>"); i++; continue; }
-      if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1])) {   // tabela
+      if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1])) {   // table
         const head = cells(line), aligns = cells(lines[i + 1]).map(c => /-:$/.test(c) ? "right" : "left");
         i += 2;
         const rows = [];
@@ -41,7 +41,7 @@
           "</tbody></table>");
         continue;
       }
-      if (/^\s*([-*]|\d+\.)\s+/.test(line)) {                    // lista
+      if (/^\s*([-*]|\d+\.)\s+/.test(line)) {                    // list
         const ordered = /^\s*\d+\./.test(line);
         const items = [];
         while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) {
@@ -54,7 +54,7 @@
         continue;
       }
       if (!line.trim()) { i++; continue; }
-      const para = [];                                            // parágrafo
+      const para = [];                                            // paragraph
       while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|```|\s*\||\s*([-*]|\d+\.)\s+)/.test(lines[i])) para.push(lines[i++].trim());
       out.push(`<p>${inline(para.join(" "))}</p>`);
     }

@@ -1,12 +1,12 @@
-# Ferramentas partilhadas do QA Lab: Jenkins (CI/CD) e Adminer (base de dados no browser).
-# No Docker Desktop aparecem no grupo "qa-lab-tools".
-# Antes da primeira vez:   docker network create qa-lab-net
-# Arranque:                docker compose up -d --build
+# QA Lab shared tools: Jenkins (CI/CD) and Adminer (database in the browser).
+# In Docker Desktop they appear in the "qa-lab-tools" group.
+# Before the first time:   docker network create qa-lab-net
+# Start:                   docker compose up -d --build
 #
-#   Jenkins  http://localhost:8090   (utilizador admin / admin)
-#   Adminer  http://localhost:8081   (PostgreSQL · servidor qa-lab-qa-db ou qa-lab-uat-db · qa / qa · qa_lab)
+#   Jenkins  http://localhost:8090   (user admin / admin)
+#   Adminer  http://localhost:8081   (PostgreSQL · server qa-lab-qa-db or qa-lab-uat-db · qa / qa · qa_lab or settlement)
 #
-# Os ambientes QA e UAT são criados pelo pipeline do Jenkins (ver docker-compose.env.yml).
+# The QA and UAT environments are created by the Jenkins pipeline (see docker-compose.env.yml).
 
 name: qa-lab-tools
 
@@ -15,13 +15,13 @@ services:
     build: ./jenkins
     image: qa-lab-jenkins:local
     container_name: qa-lab-jenkins
-    user: root                      # necessário para usar o Docker do teu computador (só em laboratório)
+    user: root                      # needed to use your computer's Docker (lab only)
     ports:
       - "8090:8080"
     volumes:
       - jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock   # o Jenkins comanda o Docker para fazer os deploys
-      - ./:/repo/qa-lab:ro                          # o teu repositório Git local (só leitura)
+      - /var/run/docker.sock:/var/run/docker.sock   # Jenkins drives Docker to run the deployments
+      - ./:/repo/qa-lab:ro                          # your local Git repository (read-only)
     restart: unless-stopped
     networks:
       - qa-lab-net
@@ -39,7 +39,7 @@ services:
 
 volumes:
   jenkins_home:
-    name: qa-lab_jenkins_home     # mantém o histórico de builds já existente
+    name: qa-lab_jenkins_home     # keeps the existing build history
 
 networks:
   qa-lab-net:

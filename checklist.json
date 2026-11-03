@@ -1,65 +1,65 @@
 {
-  "title": "QA Lab · Checklist da vaga",
+  "title": "QA Lab · Job description checklist",
   "updated": "2026-11-03",
   "epics": [
     {
       "id": "base",
-      "title": "Base do projeto",
+      "title": "Project foundation",
       "items": [
         {
           "id": "B1",
-          "requirement": "Mini bolsa inspirada na arquitetura pública da Euronext: Order Entry Gateway, Matching Engine e Market Data",
-          "evidence": "Página principal e API REST",
+          "requirement": "Mini exchange inspired by Euronext's public architecture: Order Entry Gateway, Matching Engine and Market Data",
+          "evidence": "Main page and REST API",
           "link": "/",
           "done": true
         },
         {
           "id": "B2",
-          "requirement": "Base de dados PostgreSQL por ambiente",
-          "evidence": "Bases qa_lab (Trading) e settlement por ambiente; consola SQL com as duas bases e Adminer",
+          "requirement": "PostgreSQL database per environment",
+          "evidence": "qa_lab (Trading) and settlement databases per environment; SQL console for both databases and Adminer",
           "link": "http://localhost:8081",
           "done": true
         },
         {
           "id": "B3",
-          "requirement": "Servidores Linux em Docker com terminal no browser e utilizador sem root",
-          "evidence": "Terminal QA :7681 · terminal UAT :7682",
+          "requirement": "Linux servers in Docker with a browser terminal and a non-root user",
+          "evidence": "QA terminal :7681 · UAT terminal :7682",
           "link": "http://localhost:7681",
           "done": true
         },
         {
           "id": "B4",
-          "requirement": "Repositório Git",
-          "evidence": "Histórico de commits por etapa",
+          "requirement": "Git repository",
+          "evidence": "Commit history per step",
           "link": "",
           "done": true
         },
         {
           "id": "B5",
-          "requirement": "Checklist vivo da vaga",
-          "evidence": "Esta página",
+          "requirement": "Live checklist of the job description",
+          "evidence": "This page",
           "link": "/checklist",
           "done": true
         },
         {
           "id": "B6",
-          "requirement": "Ambientes QA e UAT (grupos qa e uat) com Jenkins do laboratório (grupo qa-lab-tools); a mesma imagem é promovida de QA para UAT",
+          "requirement": "QA and UAT environments (groups qa and uat) with the lab's Jenkins (group qa-lab-tools); the same image is promoted from QA to UAT",
           "evidence": "QA :8000 · UAT :9000 · Jenkins :8090",
           "link": "http://localhost:8090",
           "done": true
         },
         {
           "id": "B7",
-          "requirement": "Settlement T+2: calendário TARGET2, instruções de liquidação, hold/release e fecho do dia (EOD)",
-          "evidence": "Painel de liquidação e relatório CSV do fecho do dia",
+          "requirement": "T+2 settlement: TARGET2 calendar, settlement instructions, hold/release and end of day (EOD)",
+          "evidence": "Settlement panel and end-of-day CSV report",
           "link": "/",
           "done": true
         },
         {
           "id": "B8",
-          "requirement": "Arquitetura de integração: Trading → Kafka → Settlement → simulador T2S, com contratos (JSON Schema, OpenAPI), outbox, idempotência, DLQ e reconciliação entre sistemas",
-          "evidence": "3 serviços e 2 bases de dados por ambiente; painel de integração na página principal",
-          "link": "/docs/tecnico/arquitetura.md",
+          "requirement": "Integration architecture: Trading → Kafka → Settlement → T2S simulator, with contracts (JSON Schema, OpenAPI), outbox, idempotency, DLQ and cross-system reconciliation",
+          "evidence": "3 services and 2 databases per environment; integration panel on the main page",
+          "link": "/docs/technical/architecture.md",
           "done": true
         }
       ]
@@ -71,36 +71,36 @@
         {
           "id": "1.1",
           "requirement": "Build and execute comprehensive test strategies for standalone testing",
-          "evidence": "Estratégia de testes: componentes isolados, integração entre serviços com simulador T2S, depois ponta a ponta",
-          "link": "/docs/qa/estrategia-de-testes.md",
+          "evidence": "Test strategy: isolated components, integration between services with a T2S simulator, then end to end",
+          "link": "/docs/qa/test-strategy.md",
           "done": true
         },
         {
           "id": "1.2",
           "requirement": "Define test objectives, scope, and acceptance criteria",
-          "evidence": "Objetivos, âmbito e critérios de entrada/saída + 21 critérios de aceitação (AC-V, AC-N, AC-L, AC-I) em Gherkin",
-          "link": "/docs/qa/estrategia-de-testes.md",
+          "evidence": "Objectives, scope and entry/exit criteria + 21 acceptance criteria (AC-V, AC-N, AC-L, AC-I) in Gherkin",
+          "link": "/docs/qa/test-strategy.md",
           "done": true
         },
         {
           "id": "1.3",
           "requirement": "Identify and prioritise test cases based on risk and business impact",
-          "evidence": "Matriz de risco (19 riscos de negócio, 6 técnicos) e tags @critico / @alto / @medio",
-          "link": "/docs/qa/matriz-de-risco.md",
+          "evidence": "Risk matrix (19 business risks, 6 technical) and @critical / @high / @medium tags",
+          "link": "/docs/qa/risk-matrix.md",
           "done": true
         },
         {
           "id": "1.4",
           "requirement": "Apply solid functional understanding to validate application behaviour and business flows",
-          "evidence": "33 cenários BDD de negociação, liquidação e integração, a correr contra o ambiente QA com Kafka real",
-          "link": "/docs/qa/estrategia-de-testes.md",
+          "evidence": "33 BDD scenarios for trading, settlement and integration, running against the QA environment with real Kafka",
+          "link": "/docs/qa/test-strategy.md",
           "done": true
         },
         {
           "id": "1.5",
           "requirement": "Contribute to regression testing and release validation activities",
-          "evidence": "Regressão BDD no pipeline (completa ou crítica), resumo de testes e checklist go/no-go",
-          "link": "/docs/qa/checklist-release.md",
+          "evidence": "BDD regression in the pipeline (full or critical), test summary and go/no-go checklist",
+          "link": "/docs/qa/release-checklist.md",
           "done": true
         }
       ]
@@ -112,36 +112,36 @@
         {
           "id": "2.1",
           "requirement": "Execute manual and automated tests to validate functional behaviour",
-          "evidence": "10 casos de teste manuais, charter exploratório e registo de execução + 119 testes automáticos (86 pytest + 33 BDD)",
-          "link": "/docs/qa/casos-de-teste-manuais.md",
+          "evidence": "10 manual test cases, exploratory charter and execution log + 119 automated tests (86 pytest + 33 BDD)",
+          "link": "/docs/qa/manual-test-cases.md",
           "done": true
         },
         {
           "id": "2.2",
           "requirement": "Reproduce, analyse, document, and track defects",
-          "evidence": "12 bug reports (5 de treino em modo desafio, 7 reais) com passos, evidências de API, log e SQL; registo no Jira no item F1",
-          "link": "/docs/defeitos/README.md",
+          "evidence": "13 bug reports (5 training defects in challenge mode, 8 real) with steps and API, log and SQL evidence; logged in Jira in item F1",
+          "link": "/docs/defects/README.md",
           "done": true
         },
         {
           "id": "2.3",
           "requirement": "Collaborate with developers and QA colleagues to investigate issues and validate fixes",
-          "evidence": "Fluxo de investigação com developers; correções em ramos fix/DEF-006 e fix/DEF-007, com reteste e regressão",
-          "link": "/docs/qa/validacao-de-correcoes.md",
+          "evidence": "Investigation flow with developers; fixes on fix/DEF-006 and fix/DEF-007 branches, with retest and regression",
+          "link": "/docs/qa/fix-validation.md",
           "done": true
         },
         {
           "id": "2.4",
           "requirement": "Provide clear reporting on progress, risks, coverage, and test results",
-          "evidence": "Relatório HTML automático (progresso, cobertura, critérios, riscos, defeitos, GO/NO-GO) + relatório da versão 0.3.0",
-          "link": "/docs/qa/relatorio-de-testes-0.3.0.md",
+          "evidence": "Automatic HTML report (progress, coverage, criteria, risks, defects, GO/NO-GO) + reports for versions 0.3.0 and 0.5.0",
+          "link": "/docs/qa/test-report-0.5.0.md",
           "done": true
         },
         {
           "id": "2.5",
           "requirement": "Maintain testing documentation and contribute to traceability of test activities",
-          "evidence": "Matriz de rastreabilidade gerada a partir do código: critério → risco → cenário → caso manual → defeito",
-          "link": "/docs/qa/matriz-de-rastreabilidade.md",
+          "evidence": "Traceability matrix generated from the code: criterion → risk → scenario → manual case → defect",
+          "link": "/docs/qa/traceability-matrix.md",
           "done": true
         }
       ]
@@ -153,64 +153,64 @@
         {
           "id": "3.1",
           "requirement": "Contribute to test automation coverage and its continuous improvement",
-          "evidence": "86 testes pytest (componente, API, integração entre serviços, contratos OpenAPI) + 33 cenários BDD; 100% dos 21 critérios automatizados",
-          "link": "/docs/qa/plano-de-automacao.md",
+          "evidence": "86 pytest tests (component, API, integration between services, OpenAPI contracts) + 33 BDD scenarios; 100% of the 21 criteria automated",
+          "link": "/docs/qa/automation-plan.md",
           "done": true
         },
         {
           "id": "3.2",
           "requirement": "Linux commands",
-          "evidence": "20 exercícios de Linux sobre o próprio servidor e cenário de incidente",
-          "link": "/docs/tecnico/linux-e-shell.md",
+          "evidence": "21 Linux exercises on the lab's own server and an incident scenario",
+          "link": "/docs/technical/linux-and-shell.md",
           "done": true
         },
         {
           "id": "3.3",
           "requirement": "Jenkins pipelines",
-          "evidence": "Pipeline como código: gates, promoção de imagem, parâmetros, regressão noturna, aprovação, JCasC",
-          "link": "/docs/tecnico/jenkins.md",
+          "evidence": "Pipeline as code: gates, image promotion, parameters, nightly regression, approval, JCasC",
+          "link": "/docs/technical/jenkins.md",
           "done": true
         },
         {
           "id": "3.4",
           "requirement": "Git",
-          "evidence": "Fluxo de ramos feature/ e fix/DEF-NNN com merges no histórico, 10 exercícios",
-          "link": "/docs/tecnico/git.md",
+          "evidence": "feature/ and fix/DEF-NNN branch workflow with merges in the history, 10 exercises",
+          "link": "/docs/technical/git.md",
           "done": true
         },
         {
           "id": "3.5",
           "requirement": "Python scripting",
-          "evidence": "Scripts Python: relatório de testes, rastreabilidade, leitura de artefactos, gerador de ordens",
-          "link": "/docs/qa/guia-de-automacao.md",
+          "evidence": "Python scripts: test report, traceability, artifact parsing, order generator, Jenkins control",
+          "link": "/docs/qa/automation-guide.md",
           "done": true
         },
         {
           "id": "3.6",
           "requirement": "Shell scripting",
-          "evidence": "Scripts Shell: deploy, smoke, espera ativa, testes, análise de logs, fecho do dia, backup com rotação",
-          "link": "/docs/tecnico/linux-e-shell.md",
+          "evidence": "Shell scripts: deploy, smoke, active wait, tests, log analysis, end of day, backup with rotation",
+          "link": "/docs/technical/linux-and-shell.md",
           "done": true
         },
         {
           "id": "3.7",
           "requirement": "Database management",
-          "evidence": "11 consultas de QA em PostgreSQL (5 verificações de integridade que detetam DEF-002 e DEF-003), backup e restauro",
-          "link": "/docs/tecnico/base-de-dados.md",
+          "evidence": "14 QA queries in PostgreSQL across the two databases (integrity checks that detect DEF-002 and DEF-003), backup and restore",
+          "link": "/docs/technical/database.md",
           "done": true
         },
         {
           "id": "3.8",
           "requirement": "BDD (Behavior-Driven Development) and test automation frameworks",
-          "evidence": "Frameworks pytest e behave (Gherkin em português), camadas, convenções e guia para novos cenários",
-          "link": "/docs/qa/guia-de-automacao.md",
+          "evidence": "pytest and behave frameworks (Gherkin), layers, conventions and a guide for new scenarios",
+          "link": "/docs/qa/automation-guide.md",
           "done": true
         },
         {
           "id": "3.9",
           "requirement": "Leverage AI tools for test design, defect analysis, documentation and automation",
-          "evidence": "Registo do uso de IA: onde ajudou, erros apanhados na revisão, regras de proteção de dados",
-          "link": "/docs/qa/uso-de-ia.md",
+          "evidence": "AI usage log: where it helped, mistakes caught in review, data protection rules",
+          "link": "/docs/qa/ai-usage.md",
           "done": true
         }
       ]
@@ -222,41 +222,41 @@
         {
           "id": "4.1",
           "requirement": "Collaborate closely with developers, business analysts, team leads, project managers, and QA colleagues",
-          "evidence": "Colaboração por papel, sessão three amigos da liquidação, comunicação de defeitos, template de pull request",
-          "link": "/docs/processo/colaboracao.md",
+          "evidence": "Collaboration by role, three amigos session on settlement, defect communication, pull request template",
+          "link": "/docs/process/collaboration.md",
           "done": true
         },
         {
           "id": "4.2",
           "requirement": "Contribute to the continuous improvement of QA processes and automation coverage",
-          "evidence": "Retrospetiva com factos reais e 8 ações de melhoria (5 feitas)",
-          "link": "/docs/processo/retrospetiva.md",
+          "evidence": "Retrospective based on real facts and 9 improvement actions (6 done)",
+          "link": "/docs/process/retrospective.md",
           "done": true
         },
         {
           "id": "4.3",
           "requirement": "Support structured testing practices and quality-focused delivery",
-          "evidence": "Processo de QA da história à release, Definition of Ready e Definition of Done",
-          "link": "/docs/processo/processo-de-qa.md",
+          "evidence": "QA process from story to release, Definition of Ready and Definition of Done",
+          "link": "/docs/process/qa-process.md",
           "done": true
         },
         {
           "id": "4.4",
           "requirement": "Share knowledge and progressively support less experienced team members",
-          "evidence": "Guia de onboarding de 5 dias, glossário e boas práticas",
-          "link": "/docs/onboarding/guia-de-onboarding.md",
+          "evidence": "5-day onboarding guide, glossary and good practices",
+          "link": "/docs/onboarding/onboarding-guide.md",
           "done": true
         }
       ]
     },
     {
       "id": "final",
-      "title": "Fecho do projeto",
+      "title": "Project close-out",
       "items": [
         {
           "id": "F1",
-          "requirement": "Gestão de defeitos no Jira: registar, acompanhar e fechar os defeitos encontrados (Jira pessoal de testes, nunca o corporativo)",
-          "evidence": "Projeto QAL num Jira Cloud gratuito pessoal",
+          "requirement": "Defect management in Jira: log, track and close the defects found (a personal test Jira, never the corporate one)",
+          "evidence": "Project QAL in a free personal Jira Cloud",
           "link": "",
           "done": false
         }

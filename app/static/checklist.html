@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="pt">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QA Lab · Checklist da vaga</title>
+<title>QA Lab · Job checklist</title>
 <style>
   :root{--bg:#0f1729;--panel:#16213a;--line:#25324f;--text:#e8ecf4;--muted:#93a0b8;--ok:#3fb68b;--no:#ef6f5e;--accent:#5b9cf5}
   *{box-sizing:border-box}
@@ -32,8 +32,8 @@
 </head>
 <body>
 <header>
-  <h1 id="title">Checklist da vaga</h1>
-  <a href="/">Abrir a mini bolsa</a>
+  <h1 id="title">Job checklist</h1>
+  <a href="/">Open the mini exchange</a>
   <span class="sp"></span>
   <div class="progress"><span id="summary"></span><div class="bar"><div id="bar" style="width:0"></div></div></div>
 </header>
@@ -45,12 +45,12 @@ fetch("/api/checklist").then(r => r.json()).then(data => {
   let total = 0, done = 0;
   document.getElementById("epics").innerHTML = data.epics.map(ep => {
     const d = ep.items.filter(i => i.done).length; total += ep.items.length; done += d;
-    return `<section class="epic"><h2>${esc(ep.title)}</h2><div class="meta">${d} de ${ep.items.length} concluídas</div><table>` +
-      ep.items.map(i => `<tr><td class="st">${i.done ? '<span class="ok" aria-hidden="true">✓</span><span class="lbl">Concluído</span>' : '<span class="no" aria-hidden="true">✕</span><span class="lbl">Por fazer</span>'}</td>
+    return `<section class="epic"><h2>${esc(ep.title)}</h2><div class="meta">${d} of ${ep.items.length} done</div><table>` +
+      ep.items.map(i => `<tr><td class="st">${i.done ? '<span class="ok" aria-hidden="true">✓</span><span class="lbl">Done</span>' : '<span class="no" aria-hidden="true">✕</span><span class="lbl">To do</span>'}</td>
         <td class="id">${esc(i.id)}</td><td>${esc(i.requirement)}</td>
         <td class="ev">${i.link ? `<a href="${esc(i.link)}">${esc(i.evidence)}</a>` : esc(i.evidence)}</td></tr>`).join("") + `</table></section>`;
   }).join("");
-  document.getElementById("summary").textContent = `${done} de ${total} etapas concluídas (${Math.round(done/total*100)}%) · atualizado em ${data.updated}`;
+  document.getElementById("summary").textContent = `${done} of ${total} items done (${Math.round(done/total*100)}%) · updated ${data.updated}`;
   document.getElementById("bar").style.width = `${done/total*100}%`;
 });
 </script>

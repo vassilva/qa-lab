@@ -1,17 +1,17 @@
-# Jenkins do QA Lab: já configurado (sem assistente inicial), com o cliente Docker e o pipeline criado.
+# QA Lab Jenkins: preconfigured (no setup wizard), with the Docker client and the pipeline created.
 FROM jenkins/jenkins:lts
 
 USER root
 
-# Cliente Docker + plugins compose e buildx (da imagem oficial docker:29-cli)
+# Docker client + compose and buildx plugins (from the official docker:29-cli image)
 COPY --from=docker:29-cli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=docker:29-cli /usr/local/libexec/docker/cli-plugins/ /usr/local/libexec/docker/cli-plugins/
 
-# Python para os scripts de apoio (ex.: resumo de testes)
+# Python for the support scripts (e.g. test summary)
 RUN apt-get update && apt-get install -y --no-install-recommends python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# O repositório é montado a partir do Windows com outro dono: o Git tem de confiar nele
+# The repository is mounted from Windows with another owner: Git must trust it
 RUN git config --system --add safe.directory '*'
 
 COPY plugins.txt /usr/share/jenkins/ref/plugins.txt
