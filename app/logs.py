@@ -1,0 +1,32 @@
+"""
+Logs do QA Lab.
+
+Todos os componentes escrevem no mesmo ficheiro, cada um com a sua etiqueta:
+    2026-11-03 10:15:02,118 INFO [OEG] Ordem O00001 aceite: SELL 100 EDP @ 4.50
+
+Etiquetas: OEG (Order Entry Gateway), ME (Matching Engine), SETTLEMENT, API.
+Pasta: variável QA_LAB_LOG_DIR (no contentor: /var/log/qa-lab), ficheiro qa-lab.log
+"""
+
+import logging
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_DIR = os.environ.get("QA_LAB_LOG_DIR", os.path.join(BASE_DIR, "logs"))
+LOG_FILE = os.path.join(LOG_DIR, "qa-lab.log")
+
+_handler = None
+
+
+def get_logger(component: str) -> logging.Logger:
+    global _handler
+    if _handler is None:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        _handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
+        _handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s"))
+    log = logging.getLogger(component)
+    if _handler not in log.handlers:
+        log.addHandler(_handler)
+        log.setLevel(logging.INFO)
+        log.propagate = False
+    return log

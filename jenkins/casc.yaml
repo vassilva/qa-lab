@@ -1,0 +1,47 @@
+# Configuração do Jenkins como código (plugin Configuration as Code)
+jenkins:
+  systemMessage: "QA Lab · Jenkins do laboratório · pipeline Build → QA → UAT → go/no-go"
+  numExecutors: 2
+  mode: NORMAL
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          name: "QA Lab Admin"
+          password: "admin"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+unclassified:
+  location:
+    url: "http://localhost:8090/"
+
+jobs:
+  - script: |
+      pipelineJob('qa-lab-pipeline') {
+        description('QA Lab: build da imagem, testes, deploy em QA, deploy em UAT, smoke tests e aprovação go/no-go. Verifica o repositório a cada 2 minutos.')
+        properties {
+          pipelineTriggers {
+            triggers {
+              pollSCM {
+                scmpoll_spec('H/2 * * * *')
+              }
+            }
+          }
+        }
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('file:///repo/qa-lab')
+                }
+                branch('*/main')
+              }
+            }
+            scriptPath('Jenkinsfile')
+          }
+        }
+      }

@@ -1,3 +1,9 @@
-# Scripts Shell sempre com fim de linha Linux (evita erros "bad interpreter" no Windows)
-*.sh text eol=lf
-Dockerfile text eol=lf
+# Ficheiros usados dentro dos contentores Linux: sempre com fim de linha Linux (LF),
+# mesmo quando o repositório é editado no Windows (evita erros "bad interpreter" e "\r")
+*.sh        text eol=lf
+*.env       text eol=lf
+Dockerfile  text eol=lf
+Jenkinsfile text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.py        text eol=lf

@@ -42,12 +42,20 @@
   .empty{color:var(--muted);font-size:13px;padding:8px}
   .x{color:var(--muted);background:none;border:0;cursor:pointer;font:inherit} .x:hover{color:var(--sell)}
   a{color:var(--accent)}
+  .env{font-weight:700;letter-spacing:.06em}
+  .env.QA{color:#0b1222;background:var(--accent);border-color:var(--accent)}
+  .env.UAT{color:#2b1a02;background:var(--warn);border-color:var(--warn)}
+  .comp{font-size:11px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:2px}
+  .st.PENDING{color:var(--accent)} .st.ON_HOLD{color:var(--warn)} .st.SETTLED{color:var(--buy)}
+  .bd{font:600 20px var(--mono);white-space:nowrap;flex:none!important}
+  .row>.empty{flex:none}
   @media (max-width:1000px){main{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
   <h1>QA Lab · Mini bolsa de valores</h1>
+  <span id="env" class="badge env">…</span>
   <span id="health" class="badge">a verificar…</span>
   <span id="mode" class="badge"></span>
   <span class="sp"></span>
@@ -58,7 +66,7 @@
 
 <main>
   <section class="panel">
-    <h2>Nova ordem</h2>
+    <span class="comp">Order Entry Gateway</span><h2>Nova ordem</h2>
     <div class="tabs" id="symbols"></div>
     <form id="orderForm" autocomplete="off">
       <label for="qty">Quantidade</label>
@@ -77,7 +85,7 @@
   </section>
 
   <section class="panel">
-    <h2>Livro de ordens · <span id="bookSymbol"></span></h2>
+    <span class="comp">Market Data</span><h2>Livro de ordens · <span id="bookSymbol"></span></h2>
     <div class="book">
       <div><table><thead><tr><th>Ordem</th><th class="num">Qtd</th><th class="num bid">Compra</th><th></th></tr></thead><tbody id="bids"></tbody></table></div>
       <div><table><thead><tr><th class="num ask">Venda</th><th class="num">Qtd</th><th>Ordem</th><th></th></tr></thead><tbody id="asks"></tbody></table></div>
@@ -85,8 +93,8 @@
   </section>
 
   <section class="panel">
-    <h2>Negócios</h2>
-    <div class="scroll"><table><thead><tr><th>Negócio</th><th>Símbolo</th><th class="num">Qtd</th><th class="num">Preço</th><th>Compra</th><th>Venda</th></tr></thead><tbody id="trades"></tbody></table></div>
+    <span class="comp">Matching Engine</span><h2>Negócios</h2>
+    <div class="scroll"><table><thead><tr><th>Negócio</th><th>Data</th><th>Símbolo</th><th class="num">Qtd</th><th class="num">Preço</th><th>Compra</th><th>Venda</th></tr></thead><tbody id="trades"></tbody></table></div>
   </section>
 
   <section class="panel wide">
@@ -97,6 +105,23 @@
       </select>
     </div>
     <div class="scroll" style="margin-top:10px"><table><thead><tr><th>Ordem</th><th>Símbolo</th><th>Lado</th><th class="num">Qtd</th><th class="num">Preço</th><th class="num">Restante</th><th>Estado</th><th>Motivo de rejeição</th></tr></thead><tbody id="orders"></tbody></table></div>
+  </section>
+
+  <section class="panel wide">
+    <span class="comp">Settlement T+2</span>
+    <div class="row" style="flex:none;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <h2 style="margin:0">Instruções de liquidação</h2>
+      <div class="row" style="flex:none;gap:10px;flex-wrap:wrap">
+        <span class="empty" style="padding:0">Data de negócio</span><span class="bd" id="bizDate">—</span>
+        <input id="newBizDate" type="date" style="width:170px;flex:none" title="Mudar a data de negócio (só dias úteis)">
+        <button class="btn" id="setBizDate" style="flex:none">Definir data</button>
+        <button class="btn" id="eod" style="flex:none;border-color:var(--warn)" title="Liquida as instruções devidas e avança para o próximo dia útil">Fechar o dia (EOD)</button>
+        <select id="siFilter" style="width:170px;flex:none">
+          <option value="">Todos os estados</option><option>PENDING</option><option>ON_HOLD</option><option>SETTLED</option>
+        </select>
+      </div>
+    </div>
+    <div class="scroll" style="margin-top:10px"><table><thead><tr><th>Instrução</th><th>Negócio</th><th>Símbolo</th><th class="num">Qtd</th><th class="num">Montante (EUR)</th><th>Negociação</th><th>Liquidação prevista</th><th>Estado</th><th>Liquidada em</th><th></th></tr></thead><tbody id="instructions"></tbody></table></div>
   </section>
 
   <section class="panel wide">
@@ -116,6 +141,9 @@ const presets = {
   "Rejeições por motivo": "SELECT reject_reason, COUNT(*) AS total FROM orders WHERE status='REJECTED' GROUP BY reject_reason ORDER BY total DESC;",
   "Volume por símbolo": "SELECT symbol, SUM(qty) AS volume, ROUND(SUM(qty*price),2) AS valor_eur FROM trades GROUP BY symbol;",
   "Negócios fora do livro (integridade)": "SELECT t.trade_id FROM trades t LEFT JOIN orders o ON o.order_id = t.buy_order_id WHERE o.order_id IS NULL;",
+  "Liquidação por estado": "SELECT status, COUNT(*) AS instrucoes, SUM(amount) AS montante_eur FROM settlement_instructions GROUP BY status;",
+  "Negócios sem instrução (reconciliação)": "SELECT t.trade_id, t.trade_date FROM trades t LEFT JOIN settlement_instructions s ON s.trade_id = t.trade_id WHERE s.instruction_id IS NULL;",
+  "Liquidações em atraso": "SELECT s.instruction_id, s.intended_settlement_date, s.status FROM settlement_instructions s WHERE s.status <> 'SETTLED' AND s.intended_settlement_date < (SELECT CAST(state_value AS DATE) FROM system_state WHERE state_key = 'business_date');",
   "Quantidade executada vs. ordem": "SELECT o.order_id, o.qty, o.remaining, COALESCE(SUM(t.qty),0) AS executado FROM orders o LEFT JOIN trades t ON o.order_id IN (t.buy_order_id, t.sell_order_id) GROUP BY o.order_id HAVING o.qty - o.remaining <> COALESCE(SUM(t.qty),0);"
 };
 const esc = v => String(v ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -157,23 +185,48 @@ async function cancel(id) {
 }
 document.addEventListener("click", e => { if (e.target.dataset.cancel) cancel(e.target.dataset.cancel); });
 
+async function siAction(id, action) {
+  const r = await api(`/api/settlement/instructions/${id}/${action}`, {method: "POST"});
+  $("#lastResponse").textContent = `POST /api/settlement/instructions/${id}/${action} → HTTP ${r.status}\n` + JSON.stringify(r.body, null, 2);
+  refresh();
+}
+document.addEventListener("click", e => { if (e.target.dataset.si) siAction(e.target.dataset.si, e.target.dataset.act); });
+$("#eod").addEventListener("click", async () => {
+  const r = await api("/api/eod", {method: "POST"});
+  $("#lastResponse").textContent = `POST /api/eod → HTTP ${r.status}\n` + JSON.stringify(r.body, null, 2);
+  refresh();
+});
+$("#setBizDate").addEventListener("click", async () => {
+  const r = await api("/api/business-date", {method: "POST", body: JSON.stringify({date: $("#newBizDate").value})});
+  $("#lastResponse").textContent = `POST /api/business-date → HTTP ${r.status}\n` + JSON.stringify(r.body, null, 2);
+  refresh();
+});
+$("#siFilter").addEventListener("change", () => refresh());
+
 $("#reset").addEventListener("click", async () => {
-  if (!confirm("Apagar todas as ordens e negócios?")) return;
+  if (!confirm("Apagar todas as ordens, negócios e instruções de liquidação deste ambiente?")) return;
   await api("/api/reset", {method: "POST"}); $("#lastResponse").textContent = "Ambiente reiniciado."; refresh();
 });
 
 async function refresh() {
   try {
-    const [h, book, trades, orders] = await Promise.all([
+    const [h, book, trades, orders, ins, bd] = await Promise.all([
       api("/health"), api(`/api/book/${symbol}`), api("/api/trades"),
-      api("/api/orders" + ($("#statusFilter").value ? `?status=${$("#statusFilter").value}` : ""))
+      api("/api/orders" + ($("#statusFilter").value ? `?status=${$("#statusFilter").value}` : "")),
+      api("/api/settlement/instructions" + ($("#siFilter").value ? `?status=${$("#siFilter").value}` : "")),
+      api("/api/business-date")
     ]);
+    $("#env").textContent = `${h.body.environment} · v${h.body.version}`;
+    $("#env").className = "badge env " + h.body.environment;
+    document.title = `QA Lab ${h.body.environment} · Mini bolsa`;
+    $("#bizDate").textContent = bd.body.business_date;
+    $("#instructions").innerHTML = ins.body.map(i => `<tr><td>${i.instruction_id}</td><td>${i.trade_id}</td><td>${i.symbol}</td><td class="num">${i.qty}</td><td class="num">${Number(i.amount).toFixed(2)}</td><td>${i.trade_date}</td><td>${i.intended_settlement_date}</td><td><span class="st ${i.status}">${i.status}</span></td><td>${i.settled_on ?? ""}</td><td>${i.status === "PENDING" ? `<button class="btn" data-si="${i.instruction_id}" data-act="hold" style="padding:3px 8px;font-size:12px">Hold</button>` : i.status === "ON_HOLD" ? `<button class="btn" data-si="${i.instruction_id}" data-act="release" style="padding:3px 8px;font-size:12px">Release</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="10" class="empty">Ainda não há instruções de liquidação</td></tr>`;
     $("#health").textContent = `serviço ${h.body.status} · ${h.body.database}`; $("#health").className = "badge " + (h.body.status === "UP" ? "up" : "down");
     $("#mode").textContent = h.body.challenge_mode ? "modo desafio ATIVO" : "modo normal";
     $("#mode").className = "badge" + (h.body.challenge_mode ? " warn" : "");
     $("#bids").innerHTML = book.body.bids.map(o => `<tr><td>${o.order_id}</td><td class="num">${o.remaining}</td><td class="num bid">${fmt(o.price)}</td><td><button class="x" data-cancel="${o.order_id}" title="Cancelar">✕</button></td></tr>`).join("") || `<tr><td colspan="4" class="empty">Sem compras</td></tr>`;
     $("#asks").innerHTML = book.body.asks.map(o => `<tr><td class="num ask">${fmt(o.price)}</td><td class="num">${o.remaining}</td><td>${o.order_id}</td><td><button class="x" data-cancel="${o.order_id}" title="Cancelar">✕</button></td></tr>`).join("") || `<tr><td colspan="4" class="empty">Sem vendas</td></tr>`;
-    $("#trades").innerHTML = trades.body.map(t => `<tr><td>${t.trade_id}</td><td>${t.symbol}</td><td class="num">${t.qty}</td><td class="num">${fmt(t.price)}</td><td>${t.buy_order_id}</td><td>${t.sell_order_id}</td></tr>`).join("") || `<tr><td colspan="6" class="empty">Ainda não há negócios</td></tr>`;
+    $("#trades").innerHTML = trades.body.map(t => `<tr><td>${t.trade_id}</td><td>${t.trade_date}</td><td>${t.symbol}</td><td class="num">${t.qty}</td><td class="num">${fmt(t.price)}</td><td>${t.buy_order_id}</td><td>${t.sell_order_id}</td></tr>`).join("") || `<tr><td colspan="7" class="empty">Ainda não há negócios</td></tr>`;
     $("#orders").innerHTML = orders.body.map(o => `<tr><td>${o.order_id}</td><td>${o.symbol}</td><td class="${o.side==="BUY"?"bid":"ask"}">${o.side}</td><td class="num">${o.qty}</td><td class="num">${fmt(o.price)}</td><td class="num">${o.remaining}</td><td><span class="st ${o.status}">${o.status}</span></td><td>${esc(o.reject_reason)}</td></tr>`).join("") || `<tr><td colspan="8" class="empty">Sem ordens</td></tr>`;
   } catch {
     $("#health").textContent = "serviço em baixo"; $("#health").className = "badge down";

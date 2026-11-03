@@ -1,50 +1,42 @@
-# QA Lab: arranque com  docker compose up -d --build
-# Páginas: http://localhost:8000 (mini bolsa) · :8000/checklist · :7681 (terminal Linux) · :8081 (Adminer)
-name: qa-lab
+# Ferramentas partilhadas do QA Lab: Jenkins (CI/CD) e Adminer (base de dados no browser).
+# Antes da primeira vez:   docker network create qa-lab-net
+# Arranque:                docker compose up -d --build
+#
+#   Jenkins  http://localhost:8090   (utilizador admin / admin)
+#   Adminer  http://localhost:8081   (PostgreSQL · servidor qa-lab-qa-db ou qa-lab-uat-db · qa / qa · qa_lab)
+#
+# Os ambientes QA e UAT são criados pelo pipeline do Jenkins (ver docker-compose.env.yml).
 
 services:
-  postgres:
-    image: postgres:16
-    container_name: qa-lab-postgres
-    environment:
-      POSTGRES_USER: qa
-      POSTGRES_PASSWORD: qa
-      POSTGRES_DB: qa_lab
+  jenkins:
+    build: ./jenkins
+    image: qa-lab-jenkins:local
+    container_name: qa-lab-jenkins
+    user: root                      # necessário para usar o Docker do teu computador (só em laboratório)
     ports:
-      - "5433:5432"     # 5433 no teu PC, para não chocar com o teu PostgreSQL local (5432)
+      - "8090:8080"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U qa -d qa_lab"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
-  app:
-    build: .
-    container_name: qa-lab-app
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://qa:qa@postgres:5432/qa_lab
-      QA_LAB_CHALLENGE: ${QA_LAB_CHALLENGE:-0}
-    ports:
-      - "8000:8000"     # mini bolsa (UI + API)
-      - "7681:7681"     # terminal Linux no browser
-    volumes:
-      - ./:/opt/qa-lab  # editas no VS Code e o contentor vê as alterações
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock   # o Jenkins comanda o Docker para fazer os deploys
+      - ./:/repo/qa-lab:ro                          # o teu repositório Git local (só leitura)
+    restart: unless-stopped
+    networks:
+      - qa-lab-net
 
   adminer:
     image: adminer:4
     container_name: qa-lab-adminer
-    depends_on:
-      - postgres
     environment:
-      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DEFAULT_SERVER: qa-lab-qa-db
     ports:
-      - "8081:8080"     # base de dados no browser (servidor: postgres, user: qa, pass: qa)
+      - "8081:8080"
+    restart: unless-stopped
+    networks:
+      - qa-lab-net
 
 volumes:
-  pgdata:
+  jenkins_home:
+
+networks:
+  qa-lab-net:
+    external: true

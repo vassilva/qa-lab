@@ -1,63 +1,245 @@
 {
   "title": "QA Lab · Checklist da vaga",
-  "updated": "2026-11-02",
+  "updated": "2026-11-03",
   "epics": [
     {
       "id": "base",
       "title": "Base do projeto",
       "items": [
-        {"id": "B1", "requirement": "Aplicação mini bolsa (motor, API, página web)", "evidence": "Página principal e API REST", "link": "/", "done": true},
-        {"id": "B2", "requirement": "Base de dados PostgreSQL", "evidence": "Tabelas orders e trades; consola SQL na página", "link": "/", "done": true},
-        {"id": "B3", "requirement": "Ambiente Linux em Docker com terminal no browser", "evidence": "Contentor Ubuntu/Debian; terminal em :7681", "link": "http://localhost:7681", "done": true},
-        {"id": "B4", "requirement": "Repositório Git", "evidence": "Histórico de commits por etapa", "link": "", "done": true},
-        {"id": "B5", "requirement": "Checklist vivo da vaga", "evidence": "Esta página", "link": "/checklist", "done": true}
+        {
+          "id": "B1",
+          "requirement": "Mini bolsa inspirada na arquitetura pública da Euronext: Order Entry Gateway, Matching Engine e Market Data",
+          "evidence": "Página principal e API REST",
+          "link": "/",
+          "done": true
+        },
+        {
+          "id": "B2",
+          "requirement": "Base de dados PostgreSQL por ambiente",
+          "evidence": "Tabelas orders, trades, settlement_instructions; consola SQL e Adminer",
+          "link": "http://localhost:8081",
+          "done": true
+        },
+        {
+          "id": "B3",
+          "requirement": "Servidores Linux em Docker com terminal no browser e utilizador sem root",
+          "evidence": "Terminal QA :7681 · terminal UAT :7682",
+          "link": "http://localhost:7681",
+          "done": true
+        },
+        {
+          "id": "B4",
+          "requirement": "Repositório Git",
+          "evidence": "Histórico de commits por etapa",
+          "link": "",
+          "done": true
+        },
+        {
+          "id": "B5",
+          "requirement": "Checklist vivo da vaga",
+          "evidence": "Esta página",
+          "link": "/checklist",
+          "done": true
+        },
+        {
+          "id": "B6",
+          "requirement": "Ambientes QA e UAT com Jenkins do laboratório (a mesma imagem é promovida de QA para UAT)",
+          "evidence": "QA :8000 · UAT :9000 · Jenkins :8090",
+          "link": "http://localhost:8090",
+          "done": true
+        },
+        {
+          "id": "B7",
+          "requirement": "Settlement T+2: calendário TARGET2, instruções de liquidação, hold/release e fecho do dia (EOD)",
+          "evidence": "Painel de liquidação e relatório CSV do fecho do dia",
+          "link": "/",
+          "done": true
+        }
       ]
     },
     {
       "id": "e1",
       "title": "Test Strategy and Functional Validation",
       "items": [
-        {"id": "1.1", "requirement": "Build and execute comprehensive test strategies for standalone testing", "evidence": "Documento de estratégia + testes isolados com dados controlados", "link": "", "done": false},
-        {"id": "1.2", "requirement": "Define test objectives, scope, and acceptance criteria", "evidence": "Objetivos, âmbito e critérios de aceitação em Gherkin", "link": "", "done": false},
-        {"id": "1.3", "requirement": "Identify and prioritise test cases based on risk and business impact", "evidence": "Matriz de risco + tags de prioridade nos testes", "link": "", "done": false},
-        {"id": "1.4", "requirement": "Apply solid functional understanding to validate application behaviour and business flows", "evidence": "Cenários de execução, parcial, preço-tempo e rejeições", "link": "", "done": false},
-        {"id": "1.5", "requirement": "Contribute to regression testing and release validation activities", "evidence": "Suite de regressão + checklist de go/no-go", "link": "", "done": false}
+        {
+          "id": "1.1",
+          "requirement": "Build and execute comprehensive test strategies for standalone testing",
+          "evidence": "Documento de estratégia + testes isolados com dados controlados",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "1.2",
+          "requirement": "Define test objectives, scope, and acceptance criteria",
+          "evidence": "Objetivos, âmbito e critérios de aceitação em Gherkin",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "1.3",
+          "requirement": "Identify and prioritise test cases based on risk and business impact",
+          "evidence": "Matriz de risco + tags de prioridade nos testes",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "1.4",
+          "requirement": "Apply solid functional understanding to validate application behaviour and business flows",
+          "evidence": "Cenários de execução, parcial, preço-tempo e rejeições",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "1.5",
+          "requirement": "Contribute to regression testing and release validation activities",
+          "evidence": "Suite de regressão + checklist de go/no-go",
+          "link": "",
+          "done": false
+        }
       ]
     },
     {
       "id": "e2",
       "title": "Test Execution, Defect Management and Reporting",
       "items": [
-        {"id": "2.1", "requirement": "Execute manual and automated tests to validate functional behaviour", "evidence": "Casos manuais + execução automática", "link": "", "done": false},
-        {"id": "2.2", "requirement": "Reproduce, analyse, document, and track defects", "evidence": "Modo desafio + bug reports nas Issues", "link": "", "done": false},
-        {"id": "2.3", "requirement": "Collaborate with developers and QA colleagues to investigate issues and validate fixes", "evidence": "Pull request com correção + reteste", "link": "", "done": false},
-        {"id": "2.4", "requirement": "Provide clear reporting on progress, risks, coverage, and test results", "evidence": "Relatório HTML de execução", "link": "", "done": false},
-        {"id": "2.5", "requirement": "Maintain testing documentation and contribute to traceability of test activities", "evidence": "Matriz de rastreabilidade", "link": "", "done": false}
+        {
+          "id": "2.1",
+          "requirement": "Execute manual and automated tests to validate functional behaviour",
+          "evidence": "Casos manuais + execução automática",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "2.2",
+          "requirement": "Reproduce, analyse, document, and track defects",
+          "evidence": "Modo desafio + bug reports nas Issues",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "2.3",
+          "requirement": "Collaborate with developers and QA colleagues to investigate issues and validate fixes",
+          "evidence": "Pull request com correção + reteste",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "2.4",
+          "requirement": "Provide clear reporting on progress, risks, coverage, and test results",
+          "evidence": "Relatório HTML de execução",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "2.5",
+          "requirement": "Maintain testing documentation and contribute to traceability of test activities",
+          "evidence": "Matriz de rastreabilidade",
+          "link": "",
+          "done": false
+        }
       ]
     },
     {
       "id": "e3",
       "title": "Automation, Tooling and Technical Contribution",
       "items": [
-        {"id": "3.1", "requirement": "Contribute to test automation coverage and its continuous improvement", "evidence": "Métrica de cobertura automática e plano de evolução", "link": "", "done": false},
-        {"id": "3.2", "requirement": "Linux commands", "evidence": "Exercícios no terminal sobre logs e processos", "link": "", "done": false},
-        {"id": "3.3", "requirement": "Jenkins pipelines", "evidence": "Jenkinsfile a correr os testes", "link": "", "done": false},
-        {"id": "3.4", "requirement": "Git", "evidence": "Ramos, commits e pull requests", "link": "", "done": false},
-        {"id": "3.5", "requirement": "Python scripting", "evidence": "Código dos testes e utilitários", "link": "", "done": false},
-        {"id": "3.6", "requirement": "Shell scripting", "evidence": "Healthcheck, análise de logs, execução de testes", "link": "", "done": false},
-        {"id": "3.7", "requirement": "Database management", "evidence": "Queries de validação e integridade", "link": "", "done": false},
-        {"id": "3.8", "requirement": "BDD (Behavior-Driven Development) and test automation frameworks", "evidence": "Features Gherkin com behave + pytest", "link": "", "done": false},
-        {"id": "3.9", "requirement": "Leverage AI tools for test design, defect analysis, documentation and automation", "evidence": "Registo de uso de IA com revisão humana", "link": "", "done": false}
+        {
+          "id": "3.1",
+          "requirement": "Contribute to test automation coverage and its continuous improvement",
+          "evidence": "Métrica de cobertura automática e plano de evolução",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "3.2",
+          "requirement": "Linux commands",
+          "evidence": "Exercícios no terminal sobre logs e processos",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "3.3",
+          "requirement": "Jenkins pipelines",
+          "evidence": "Jenkinsfile a correr os testes",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "3.4",
+          "requirement": "Git",
+          "evidence": "Ramos, commits e pull requests",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "3.5",
+          "requirement": "Python scripting",
+          "evidence": "Código dos testes e utilitários",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "3.6",
+          "requirement": "Shell scripting",
+          "evidence": "Healthcheck, análise de logs, execução de testes",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "3.7",
+          "requirement": "Database management",
+          "evidence": "Queries de validação e integridade",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "3.8",
+          "requirement": "BDD (Behavior-Driven Development) and test automation frameworks",
+          "evidence": "Features Gherkin com behave + pytest",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "3.9",
+          "requirement": "Leverage AI tools for test design, defect analysis, documentation and automation",
+          "evidence": "Registo de uso de IA com revisão humana",
+          "link": "",
+          "done": false
+        }
       ]
     },
     {
       "id": "e4",
       "title": "Collaboration and Continuous Improvement",
       "items": [
-        {"id": "4.1", "requirement": "Collaborate closely with developers, business analysts, team leads, project managers, and QA colleagues", "evidence": "Templates de issue e PR, Definition of Done", "link": "", "done": false},
-        {"id": "4.2", "requirement": "Contribute to the continuous improvement of QA processes and automation coverage", "evidence": "Retrospetiva e lista de melhorias", "link": "", "done": false},
-        {"id": "4.3", "requirement": "Support structured testing practices and quality-focused delivery", "evidence": "Processo de QA documentado", "link": "", "done": false},
-        {"id": "4.4", "requirement": "Share knowledge and progressively support less experienced team members", "evidence": "Guia de onboarding e exercícios", "link": "", "done": false}
+        {
+          "id": "4.1",
+          "requirement": "Collaborate closely with developers, business analysts, team leads, project managers, and QA colleagues",
+          "evidence": "Templates de issue e PR, Definition of Done",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "4.2",
+          "requirement": "Contribute to the continuous improvement of QA processes and automation coverage",
+          "evidence": "Retrospetiva e lista de melhorias",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "4.3",
+          "requirement": "Support structured testing practices and quality-focused delivery",
+          "evidence": "Processo de QA documentado",
+          "link": "",
+          "done": false
+        },
+        {
+          "id": "4.4",
+          "requirement": "Share knowledge and progressively support less experienced team members",
+          "evidence": "Guia de onboarding e exercícios",
+          "link": "",
+          "done": false
+        }
       ]
     }
   ]
