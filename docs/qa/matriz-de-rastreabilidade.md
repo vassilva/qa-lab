@@ -19,9 +19,15 @@ Gerada automaticamente por `scripts/rastreabilidade.py` em 2026-11-03. Não edit
 | **AC-L04** Uma instrução retida (hold) não é liquidada até ser libertada (release) | R-09 (Alta) | Uma instrução retida não é liquidada até ser libertada (`features/03_liquidacao.feature:46`) | TC-M06 | — |
 | **AC-L05** Todos os negócios têm instrução de liquidação (reconciliação na base de dados) | R-05 (Crítica) | Reconciliação: todos os negócios têm instrução de liquidação (`features/03_liquidacao.feature:57`) | TC-M08 | DEF-003 (Aberto (modo desafio)), DEF-010 (Fechado) |
 | **AC-L06** A data de negócio só pode ser um dia útil | R-13 (Média) | A data de negócio não pode ser um fim de semana (`features/03_liquidacao.feature:67`) | TC-M07 | DEF-005 (Aberto (modo desafio)) |
+| **AC-I01** Cada negócio publica um evento TradeExecuted que respeita o contrato v1 | R-14 (Crítica) | O negócio chega ao Settlement com os mesmos dados (`features/04_integracao.feature:20`) | — | — |
+| **AC-I02** Um evento entregue duas vezes não cria uma segunda instrução (idempotência) | R-15 (Crítica) | Evento duplicado não cria uma segunda instrução (`features/04_integracao.feature:27`) | — | — |
+| **AC-I03** Uma mensagem que não respeita o contrato vai para a fila de erros e não cria instrução | R-17 (Alta) | Mensagem fora do contrato vai para a fila de erros (`features/04_integracao.feature:33`) | — | — |
+| **AC-I04** Se o Settlement estiver indisponível, a negociação continua e as instruções chegam quando ele recupera | R-16 (Crítica) | Settlement indisponível: a negociação continua e as instruções chegam depois (`features/04_integracao.feature:39`) | — | — |
+| **AC-I05** Uma instrução rejeitada pelo T2S fica FAILED com o motivo e é reciclada no fecho seguinte | R-18 (Alta) | Rejeição pelo T2S e reciclagem no fecho seguinte (`features/04_integracao.feature:47`) | — | — |
+| **AC-I06** Se o T2S estiver indisponível, nada é liquidado e as instruções liquidam quando ele volta | R-19 (Alta) | T2S indisponível no fecho do dia (`features/04_integracao.feature:57`) | — | — |
 
 ## Cobertura
 
-- Critérios de aceitação: **15**, com cenário automatizado: **15** (100%).
-- Riscos de negócio cobertos por critérios com cenário: **13 de 13**.
+- Critérios de aceitação: **21**, com cenário automatizado: **21** (100%).
+- Riscos de negócio cobertos por critérios com cenário: **19 de 19**.
 - Casos manuais: **10** · Defeitos registados: **11**.

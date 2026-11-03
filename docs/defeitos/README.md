@@ -62,7 +62,7 @@ Novo → Em análise → Confirmado → Em correção → Corrigido → Em retes
 | [DEF-005](DEF-005.md) | Calendário de liquidação ignora os feriados TARGET2 | Settlement | Crítica | P1 | Aberto (modo desafio) |
 | [DEF-006](DEF-006.md) | Os testes BDD deixam o ambiente QA com dados e data de teste | Testes (BDD) | Baixa | P2 | Fechado |
 | [DEF-007](DEF-007.md) | Mensagem de falha do pipeline diz que a versão não chegou a UAT, mesmo quando chegou | Pipeline | Baixa | P3 | Fechado |
-| [DEF-008](DEF-008.md) | Pipeline corre no Jenkins antigo durante a atualização das ferramentas | Ambiente / Pipeline | Média | P2 | Fechado (processo) |
+| [DEF-008](DEF-008.md) | Pipeline corre no Jenkins antigo durante a atualização das ferramentas | Ambiente / Pipeline | Média | P2 | Fechado (reaberto no build #4; correção técnica) |
 | [DEF-009](DEF-009.md) | Build da imagem falha: pacote ttyd não existe no Debian 12 | Ambiente / Build | Alta | P1 | Fechado |
 | [DEF-010](DEF-010.md) | Query de reconciliação falha em PostgreSQL (alias usado no HAVING) | Base de dados | Média | P2 | Fechado |
 | [DEF-011](DEF-011.md) | Backup falharia: pg_dump 15 incompatível com o servidor PostgreSQL 16 | Ambiente / Base de dados | Alta | P1 | Fechado |

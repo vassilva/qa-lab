@@ -34,3 +34,10 @@ Este laboratório foi construído com apoio de um assistente de IA (Claude). O r
 3. **Validar no ambiente real:** o que passa num ambiente simplificado pode falhar no real (DEF-010, DEF-011).
 4. **Rastreabilidade:** decisões importantes ficam escritas (bug reports, relatórios), não só na conversa com a IA.
 5. **O conhecimento do negócio é meu:** a IA acelera, mas as regras de mercado e os riscos são validados por quem os conhece.
+
+## v0.5.0 · Arquitetura de integração
+
+- A IA ajudou a desenhar os padrões de integração (outbox, idempotência, DLQ, reciclagem) e os cenários de falha.
+- Limite assumido: no ambiente onde a IA trabalhou não era possível correr Kafka. O código foi validado localmente com
+  um barramento equivalente (ficheiro/memória) e o conector Kafka real é validado no pipeline, no ambiente QA.
+  Isto ficou escrito na matriz de risco (T-06) em vez de ser escondido.

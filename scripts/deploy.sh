@@ -45,5 +45,7 @@ docker compose -p "${ENV_NAME}" \
   -f "$ROOT/docker-compose.env.yml" \
   up -d --remove-orphans
 
-bash "$ROOT/scripts/wait_healthy.sh" "qa-lab-${ENV_NAME}-app" 120
+for svc in app settlement t2s; do
+  bash "$ROOT/scripts/wait_healthy.sh" "qa-lab-${ENV_NAME}-${svc}" 180
+done
 echo "==> ${ENV_NAME^^} a correr a versão $VERSION"

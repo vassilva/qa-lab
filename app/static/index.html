@@ -46,7 +46,8 @@
   .env.QA{color:#0b1222;background:var(--accent);border-color:var(--accent)}
   .env.UAT{color:#2b1a02;background:var(--warn);border-color:var(--warn)}
   .comp{font-size:11px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:2px}
-  .st.PENDING{color:var(--accent)} .st.ON_HOLD{color:var(--warn)} .st.SETTLED{color:var(--buy)}
+  .st.PENDING{color:var(--accent)} .st.ON_HOLD{color:var(--warn)} .st.SETTLED{color:var(--buy)} .st.FAILED{color:var(--sell)}
+  .kv{display:flex;gap:18px;flex-wrap:wrap;font:13px var(--mono)} .kv b{color:var(--muted);font-weight:500}
   .bd{font:600 20px var(--mono);white-space:nowrap;flex:none!important}
   .row>.empty{flex:none}
   @media (max-width:1000px){main{grid-template-columns:1fr}}
@@ -109,7 +110,21 @@
   </section>
 
   <section class="panel wide">
-    <span class="comp">Settlement T+2</span>
+    <span class="comp">Integração Trading → Kafka → Settlement → T2S</span>
+    <div class="row" style="flex:none;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div class="kv" id="integ">a verificar…</div>
+      <div class="row" style="flex:none;gap:8px;flex-wrap:wrap">
+        <select id="t2sMode" style="width:190px;flex:none" title="Modo do simulador T2S (só fora de UAT)">
+          <option value="normal">T2S: normal</option><option value="rejeitar_simbolo">T2S: rejeitar EDP</option>
+          <option value="rejeitar_tudo">T2S: rejeitar tudo</option><option value="indisponivel">T2S: indisponível</option>
+        </select>
+        <button class="btn" id="recon" style="flex:none">Reconciliar sistemas</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel wide">
+    <span class="comp">Settlement T+2 (serviço separado)</span>
     <div class="row" style="flex:none;justify-content:space-between;flex-wrap:wrap;gap:16px">
       <h2 style="margin:0">Instruções de liquidação</h2>
       <div class="row" style="flex:none;gap:10px;flex-wrap:wrap">
@@ -118,18 +133,18 @@
         <button class="btn" id="setBizDate" style="flex:none">Definir data</button>
         <button class="btn" id="eod" style="flex:none;border-color:var(--warn)" title="Liquida as instruções devidas e avança para o próximo dia útil">Fechar o dia (EOD)</button>
         <select id="siFilter" style="width:170px;flex:none">
-          <option value="">Todos os estados</option><option>PENDING</option><option>ON_HOLD</option><option>SETTLED</option>
+          <option value="">Todos os estados</option><option>PENDING</option><option>ON_HOLD</option><option>FAILED</option><option>SETTLED</option>
         </select>
       </div>
     </div>
-    <div class="scroll" style="margin-top:10px"><table><thead><tr><th>Instrução</th><th>Negócio</th><th>Símbolo</th><th class="num">Qtd</th><th class="num">Montante (EUR)</th><th>Negociação</th><th>Liquidação prevista</th><th>Estado</th><th>Liquidada em</th><th></th></tr></thead><tbody id="instructions"></tbody></table></div>
+    <div class="scroll" style="margin-top:10px"><table><thead><tr><th>Instrução</th><th>Negócio</th><th>Símbolo</th><th class="num">Qtd</th><th class="num">Montante (EUR)</th><th>Negociação</th><th>Liquidação prevista</th><th>Estado</th><th>Liquidada em</th><th>Motivo</th><th></th></tr></thead><tbody id="instructions"></tbody></table></div>
   </section>
 
   <section class="panel wide">
     <h2>Consola SQL (só leitura)</h2>
     <div class="presets" id="presets"></div>
     <textarea id="sql" rows="3">SELECT status, COUNT(*) AS total FROM orders GROUP BY status;</textarea>
-    <div class="row" style="margin-top:8px;flex:none"><button class="btn" id="runSql" style="flex:none">Executar</button><span id="sqlMsg" class="empty"></span></div>
+    <div class="row" style="margin-top:8px;flex:none"><select id="sqlDb" style="width:200px;flex:none"><option value="trading">Base: Trading</option><option value="settlement">Base: Settlement</option></select><button class="btn" id="runSql" style="flex:none">Executar</button><span id="sqlMsg" class="empty"></span></div>
     <div class="scroll" style="margin-top:8px"><table id="sqlResult"></table></div>
   </section>
 </main>
@@ -142,9 +157,10 @@ const presets = {
   "Rejeições por motivo": "SELECT reject_reason, COUNT(*) AS total FROM orders WHERE status='REJECTED' GROUP BY reject_reason ORDER BY total DESC;",
   "Volume por símbolo": "SELECT symbol, SUM(qty) AS volume, ROUND(SUM(qty*price),2) AS valor_eur FROM trades GROUP BY symbol;",
   "Negócios fora do livro (integridade)": "SELECT t.trade_id FROM trades t LEFT JOIN orders o ON o.order_id = t.buy_order_id WHERE o.order_id IS NULL;",
-  "Liquidação por estado": "SELECT status, COUNT(*) AS instrucoes, SUM(amount) AS montante_eur FROM settlement_instructions GROUP BY status;",
-  "Negócios sem instrução (reconciliação)": "SELECT t.trade_id, t.trade_date FROM trades t LEFT JOIN settlement_instructions s ON s.trade_id = t.trade_id WHERE s.instruction_id IS NULL;",
-  "Liquidações em atraso": "SELECT s.instruction_id, s.intended_settlement_date, s.status FROM settlement_instructions s WHERE s.status <> 'SETTLED' AND s.intended_settlement_date < (SELECT CAST(state_value AS DATE) FROM system_state WHERE state_key = 'business_date');",
+  "[Settlement] Liquidação por estado": "SELECT status, COUNT(*) AS instrucoes, SUM(amount) AS montante_eur FROM settlement_instructions GROUP BY status;",
+  "[Trading] Outbox (eventos por publicar)": "SELECT event_id, event_key, attempts, last_error FROM outbox_events WHERE published_at IS NULL;",
+  "[Settlement] Eventos rejeitados (DLQ)": "SELECT id, received_at, reason FROM rejected_events ORDER BY id DESC;",
+  "[Settlement] Liquidações em atraso": "SELECT s.instruction_id, s.intended_settlement_date, s.status FROM settlement_instructions s WHERE s.status <> 'SETTLED' AND s.intended_settlement_date < (SELECT CAST(state_value AS DATE) FROM system_state WHERE state_key = 'business_date');",
   "Quantidade executada vs. ordem": "SELECT o.order_id, o.qty, o.remaining, COALESCE(SUM(t.qty),0) AS executado FROM orders o LEFT JOIN trades t ON o.order_id IN (t.buy_order_id, t.sell_order_id) GROUP BY o.order_id HAVING o.qty - o.remaining <> COALESCE(SUM(t.qty),0);"
 };
 const esc = v => String(v ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -203,6 +219,16 @@ $("#setBizDate").addEventListener("click", async () => {
   refresh();
 });
 $("#siFilter").addEventListener("change", () => refresh());
+$("#recon").addEventListener("click", async () => {
+  const r = await api("/api/reconciliation");
+  $("#lastResponse").textContent = `GET /api/reconciliation → HTTP ${r.status}\n` + JSON.stringify(r.body, null, 2);
+});
+$("#t2sMode").addEventListener("change", async e => {
+  const body = e.target.value === "rejeitar_simbolo" ? {mode: "rejeitar_simbolo", symbol: "EDP"} : {mode: e.target.value};
+  const r = await api("/api/t2s/mode", {method: "POST", body: JSON.stringify(body)});
+  $("#lastResponse").textContent = `POST /api/t2s/mode → HTTP ${r.status}\n` + JSON.stringify(r.body, null, 2);
+  refresh();
+});
 
 $("#reset").addEventListener("click", async () => {
   if (!confirm("Apagar todas as ordens, negócios e instruções de liquidação deste ambiente?")) return;
@@ -220,8 +246,14 @@ async function refresh() {
     $("#env").textContent = `${h.body.environment} · v${h.body.version}`;
     $("#env").className = "badge env " + h.body.environment;
     document.title = `QA Lab ${h.body.environment} · Mini bolsa`;
-    $("#bizDate").textContent = bd.body.business_date;
-    $("#instructions").innerHTML = ins.body.map(i => `<tr><td>${i.instruction_id}</td><td>${i.trade_id}</td><td>${i.symbol}</td><td class="num">${i.qty}</td><td class="num">${Number(i.amount).toFixed(2)}</td><td>${i.trade_date}</td><td>${i.intended_settlement_date}</td><td><span class="st ${i.status}">${i.status}</span></td><td>${i.settled_on ?? ""}</td><td>${i.status === "PENDING" ? `<button class="btn" data-si="${i.instruction_id}" data-act="hold" style="padding:3px 8px;font-size:12px">Hold</button>` : i.status === "ON_HOLD" ? `<button class="btn" data-si="${i.instruction_id}" data-act="release" style="padding:3px 8px;font-size:12px">Release</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="10" class="empty">Ainda não há instruções de liquidação</td></tr>`;
+    $("#bizDate").textContent = bd.body ? bd.body.business_date : "Settlement indisponível";
+    const ig = (await api("/api/integration")).body || {};
+    $("#integ").innerHTML = `<span><b>Barramento</b> ${esc(ig.bus)} ${ig.bus_ok ? "✓" : "✗"}</span>` +
+      `<span><b>Outbox</b> ${ig.outbox ? ig.outbox.pending + " por publicar · " + ig.outbox.total + " no total" : "—"}</span>` +
+      `<span><b>Settlement</b> ${esc(ig.settlement && ig.settlement.status)}${ig.settlement && ig.settlement.consumer && ig.settlement.consumer.paused ? " (consumidor em pausa)" : ""}</span>` +
+      `<span><b>T2S</b> ${esc(ig.t2s && ig.t2s.mode)}</span>`;
+    if (ig.t2s && document.activeElement !== $("#t2sMode") && [...$("#t2sMode").options].some(o => o.value === ig.t2s.mode)) $("#t2sMode").value = ig.t2s.mode;
+    $("#instructions").innerHTML = ins.body.map(i => `<tr><td>${i.instruction_id}</td><td>${i.trade_id}</td><td>${i.symbol}</td><td class="num">${i.qty}</td><td class="num">${Number(i.amount).toFixed(2)}</td><td>${i.trade_date}</td><td>${i.intended_settlement_date}</td><td><span class="st ${i.status}">${i.status}</span></td><td>${i.settled_on ?? ""}</td><td>${esc(i.fail_reason)}</td><td>${["PENDING","FAILED"].includes(i.status) ? `<button class="btn" data-si="${i.instruction_id}" data-act="hold" style="padding:3px 8px;font-size:12px">Hold</button>` : i.status === "ON_HOLD" ? `<button class="btn" data-si="${i.instruction_id}" data-act="release" style="padding:3px 8px;font-size:12px">Release</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="11" class="empty">Ainda não há instruções de liquidação</td></tr>`;
     $("#health").textContent = `serviço ${h.body.status} · ${h.body.database}`; $("#health").className = "badge " + (h.body.status === "UP" ? "up" : "down");
     $("#mode").textContent = h.body.challenge_mode ? "modo desafio ATIVO" : "modo normal";
     $("#mode").className = "badge" + (h.body.challenge_mode ? " warn" : "");
@@ -236,9 +268,9 @@ async function refresh() {
 $("#statusFilter").addEventListener("change", refresh);
 
 $("#presets").innerHTML = Object.keys(presets).map(k => `<button class="btn" data-p="${esc(k)}">${esc(k)}</button>`).join("");
-$("#presets").addEventListener("click", e => { if (e.target.dataset.p) { $("#sql").value = presets[e.target.dataset.p]; runSql(); } });
+$("#presets").addEventListener("click", e => { const k = e.target.dataset.p; if (k) { $("#sql").value = presets[k]; $("#sqlDb").value = k.startsWith("[Settlement]") ? "settlement" : "trading"; runSql(); } });
 async function runSql() {
-  const r = await api("/api/query", {method: "POST", body: JSON.stringify({sql: $("#sql").value})});
+  const r = await api("/api/query", {method: "POST", body: JSON.stringify({sql: $("#sql").value, db: $("#sqlDb").value})});
   if (r.status !== 200) { $("#sqlMsg").textContent = "Erro: " + (r.body && r.body.error); $("#sqlResult").innerHTML = ""; return; }
   $("#sqlMsg").textContent = `${r.body.rows.length} linha(s)`;
   $("#sqlResult").innerHTML = `<thead><tr>${r.body.columns.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>` +

@@ -6,3 +6,4 @@ logs/
 reports/
 .venv/
 .env
+.coverage

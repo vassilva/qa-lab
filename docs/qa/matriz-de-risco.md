@@ -28,6 +28,12 @@
 | R-11 | Ordem que não cruza é executada | Matching Engine | 1 | 3 | 3 | Alta | AC-N04 |
 | R-12 | Ordem já executada pode ser cancelada | Order Entry Gateway | 1 | 2 | 2 | Média | AC-V03 |
 | R-13 | Data de negócio definida para um dia não útil | Settlement | 1 | 2 | 2 | Média | AC-L06 |
+| R-14 | Evento de negócio com formato diferente do esperado pelo Settlement (contrato quebrado) | Integração | 2 | 3 | 6 | Crítica | AC-I01 |
+| R-15 | Evento entregue duas vezes cria instrução duplicada (liquidação a dobrar) | Integração / Settlement | 2 | 3 | 6 | Crítica | AC-I02 |
+| R-16 | Negócio perdido quando o Settlement ou o Kafka estão em baixo | Integração | 2 | 3 | 6 | Crítica | AC-I04 |
+| R-17 | Mensagem inválida bloqueia o consumo das seguintes | Integração / Settlement | 2 | 2 | 4 | Alta | AC-I03 |
+| R-18 | Instrução rejeitada pelo T2S fica esquecida (não reciclada) | Settlement / T2S | 2 | 2 | 4 | Alta | AC-I05 |
+| R-19 | Instruções marcadas como liquidadas sem confirmação do T2S | Settlement / T2S | 1 | 3 | 3 | Alta | AC-I06 |
 
 ## Riscos técnicos e de entrega
 
@@ -37,9 +43,11 @@
 | T-02 | Estado perdido após reinício do serviço | 2 | 3 | 6 | Restauro a partir do PostgreSQL; teste `test_restauro_do_estado` |
 | T-03 | Ambiente indisponível depois do deploy | 2 | 2 | 4 | Healthcheck do contentor + espera ativa no deploy + smoke test |
 | T-04 | Testes destrutivos correm em UAT | 1 | 3 | 3 | O framework BDD recusa correr fora de QA/LOCAL |
+| T-05 | Testes de integração instáveis por causa da assincronia | 2 | 2 | 4 | Espera com polling e limite (`eventually`), geração do ambiente para ignorar eventos antigos |
+| T-06 | O conector Kafka não é exercitado nos testes rápidos | 2 | 2 | 4 | Os testes BDD em QA usam Kafka real; smoke verifica `bus_ok` |
 
 ## Leitura rápida
 
-Os seis riscos críticos concentram-se em **dois sítios**: o preço e a ordem de execução no Matching Engine,
-e a data de liquidação. É aí que está a maior parte do esforço de teste. Se só houver tempo para uma ronda curta,
+Os nove riscos críticos concentram-se em **três sítios**: o preço e a ordem de execução no Matching Engine,
+a data de liquidação e a passagem do negócio entre sistemas (contrato, duplicados, perdas). É aí que está a maior parte do esforço de teste. Se só houver tempo para uma ronda curta,
 corre `@critico` (cerca de 1 minuto).
