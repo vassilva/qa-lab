@@ -5,3 +5,4 @@ pipeline-stage-view
 git
 junit
 timestamper
+dark-theme
