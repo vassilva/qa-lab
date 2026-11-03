@@ -126,7 +126,7 @@ pipeline {
       echo "Pipeline concluído: ${env.APP_VERSION} aprovada em UAT."
     }
     failure {
-      echo 'Pipeline falhou: ver o estágio a vermelho, o separador Tests e os relatórios arquivados. A versão NÃO segue para UAT.'
+      echo 'Pipeline falhou: ver o estágio a vermelho, o separador Tests e os relatórios arquivados. Se a falha foi num estágio "QA · …" ou anterior, a versão não chegou a UAT.'
     }
   }
 }
