@@ -36,12 +36,16 @@ Base de dados: utilizador `qa`, password `qa`, base `qa_lab`.
 ## Pipeline (Jenkinsfile)
 
 ```
-Preparar → Build da imagem → Testes de componente e API → Deploy QA → Smoke QA
-        → Regressão BDD (QA) → Deploy UAT → Smoke UAT → Resumo de testes → Aprovação go/no-go
+Preparar → Build da imagem → Testes de componente e API
+  → QA · Deploy → QA · Smoke → QA · Regressão BDD
+  → UAT · Deploy → UAT · Smoke → UAT · Resumo de testes → UAT · Go/No-go
 ```
 
 A imagem é construída **uma vez** (`qa-lab:<versão>-<commit>`) e a mesma imagem é promovida de QA para UAT.
-O Jenkins verifica o repositório a cada 2 minutos: cada `git commit` dispara o pipeline.
+O Jenkins verifica o repositório a cada 2 minutos: cada `git commit` dispara o pipeline. Há também uma regressão
+noturna em QA (dias úteis, ~02:00) que não passa para UAT. Parâmetros: `REGRESSAO` (completa/critica) e `MODO_DESAFIO`.
+
+No Docker Desktop há três grupos: **`qa`**, **`uat`** e **`qa-lab-tools`** (Jenkins + Adminer).
 
 ## Testes
 
@@ -52,14 +56,17 @@ O Jenkins verifica o repositório a cada 2 minutos: cada `git commit` dispara o 
 | Só os críticos | | `BDD_TAGS=@critico bash scripts/run_tests.sh bdd` |
 | Um critério de aceitação | | `BDD_TAGS=@AC-L03 bash scripts/run_tests.sh bdd` |
 | Smoke pós-deploy | `scripts/smoke.sh` | `bash scripts/smoke.sh` |
+| Integridade de dados | `db/consultas_qa.sql` | `psql "$DATABASE_URL" -f db/consultas_qa.sql` |
+| Relatório de testes | `scripts/test_summary.py` | `python3 scripts/test_summary.py reports` → `localhost:8000/reports/` |
+| Rastreabilidade | `scripts/rastreabilidade.py` | `python3 scripts/rastreabilidade.py` |
+
+Hoje: **63** testes de componente e API (cobertura de código 93%) e **27** cenários BDD (15 critérios de aceitação, 100% automatizados).
 
 Os cenários BDD reiniciam os dados, por isso **recusam correr em UAT**.
 No Jenkins, **Build with Parameters** permite escolher regressão `completa` ou `critica`.
 
-Documentação de QA (também em `/docs/` na página da aplicação):
-- [Estratégia de testes](docs/qa/estrategia-de-testes.md)
-- [Matriz de risco](docs/qa/matriz-de-risco.md)
-- [Checklist de release (go/no-go)](docs/qa/checklist-release.md)
+Toda a documentação está em `docs/` e no índice **`localhost:8000/docs/`**: qualidade (estratégia, risco, casos manuais,
+relatórios, rastreabilidade, automação, IA), defeitos, guias técnicos (Linux, SQL, Git, Jenkins), processo e onboarding.
 
 ## Arranque (Windows, PowerShell no VS Code)
 
@@ -80,7 +87,7 @@ Comandos úteis:
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"   # o que está a correr
 docker exec -it qa-lab-qa-app bash                                # entrar no servidor de QA (como um ssh)
 docker logs qa-lab-uat-app                                        # mensagens de arranque do UAT
-docker compose -p qa-lab-qa down                                  # parar o QA (dados mantidos)
+docker compose -p qa down                                         # parar o QA (dados mantidos)
 docker compose down                                               # parar Jenkins e Adminer
 ```
 
@@ -139,9 +146,10 @@ db/schema.sql        esquema da base de dados
 docker/              arranque do contentor
 envs/                configuração dos ambientes QA e UAT
 features/            cenários BDD (Gherkin) e passos automatizados (features/steps)
-docs/qa/             estratégia de testes, matriz de risco, checklist de release
+docs/                qa/ defeitos/ tecnico/ processo/ onboarding/ (índice em /docs/)
+db/consultas_qa.sql  consultas de QA e verificações de integridade
 jenkins/             Jenkins do laboratório (configuração como código)
-scripts/             deploy, smoke test, testes, espera pelo serviço
+scripts/             deploy, smoke, testes, relatório, rastreabilidade, logs, EOD, backup, gerador de ordens
 tests/               testes pytest (unitários e de API)
 Jenkinsfile          pipeline CI/CD
 docker-compose.yml   Jenkins + Adminer

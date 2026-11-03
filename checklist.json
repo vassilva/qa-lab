@@ -43,7 +43,7 @@
         },
         {
           "id": "B6",
-          "requirement": "Ambientes QA e UAT com Jenkins do laboratório (a mesma imagem é promovida de QA para UAT)",
+          "requirement": "Ambientes QA e UAT (grupos qa e uat) com Jenkins do laboratório (grupo qa-lab-tools); a mesma imagem é promovida de QA para UAT",
           "evidence": "QA :8000 · UAT :9000 · Jenkins :8090",
           "link": "http://localhost:8090",
           "done": true
@@ -105,37 +105,37 @@
         {
           "id": "2.1",
           "requirement": "Execute manual and automated tests to validate functional behaviour",
-          "evidence": "Casos manuais + execução automática",
-          "link": "",
-          "done": false
+          "evidence": "10 casos de teste manuais, charter exploratório e registo de execução + 90 testes automáticos",
+          "link": "/docs/qa/casos-de-teste-manuais.md",
+          "done": true
         },
         {
           "id": "2.2",
           "requirement": "Reproduce, analyse, document, and track defects",
-          "evidence": "Modo desafio + bug reports nas Issues",
-          "link": "",
-          "done": false
+          "evidence": "11 bug reports (5 de treino em modo desafio, 6 reais) com passos, evidências de API, log e SQL; registo no Jira no item F1",
+          "link": "/docs/defeitos/README.md",
+          "done": true
         },
         {
           "id": "2.3",
           "requirement": "Collaborate with developers and QA colleagues to investigate issues and validate fixes",
-          "evidence": "Pull request com correção + reteste",
-          "link": "",
-          "done": false
+          "evidence": "Fluxo de investigação com developers; correções em ramos fix/DEF-006 e fix/DEF-007, com reteste e regressão",
+          "link": "/docs/qa/validacao-de-correcoes.md",
+          "done": true
         },
         {
           "id": "2.4",
           "requirement": "Provide clear reporting on progress, risks, coverage, and test results",
-          "evidence": "Relatório HTML de execução",
-          "link": "",
-          "done": false
+          "evidence": "Relatório HTML automático (progresso, cobertura, critérios, riscos, defeitos, GO/NO-GO) + relatório da versão 0.3.0",
+          "link": "/docs/qa/relatorio-de-testes-0.3.0.md",
+          "done": true
         },
         {
           "id": "2.5",
           "requirement": "Maintain testing documentation and contribute to traceability of test activities",
-          "evidence": "Matriz de rastreabilidade",
-          "link": "",
-          "done": false
+          "evidence": "Matriz de rastreabilidade gerada a partir do código: critério → risco → cenário → caso manual → defeito",
+          "link": "/docs/qa/matriz-de-rastreabilidade.md",
+          "done": true
         }
       ]
     },
@@ -146,65 +146,65 @@
         {
           "id": "3.1",
           "requirement": "Contribute to test automation coverage and its continuous improvement",
-          "evidence": "Métrica de cobertura automática e plano de evolução",
-          "link": "",
-          "done": false
+          "evidence": "Cobertura de código 85% → 93% (pytest-cov no pipeline), 100% dos critérios automatizados, plano de melhoria",
+          "link": "/docs/qa/plano-de-automacao.md",
+          "done": true
         },
         {
           "id": "3.2",
           "requirement": "Linux commands",
-          "evidence": "Exercícios no terminal sobre logs e processos",
-          "link": "",
-          "done": false
+          "evidence": "20 exercícios de Linux sobre o próprio servidor e cenário de incidente",
+          "link": "/docs/tecnico/linux-e-shell.md",
+          "done": true
         },
         {
           "id": "3.3",
           "requirement": "Jenkins pipelines",
-          "evidence": "Jenkinsfile a correr os testes",
-          "link": "",
-          "done": false
+          "evidence": "Pipeline como código: gates, promoção de imagem, parâmetros, regressão noturna, aprovação, JCasC",
+          "link": "/docs/tecnico/jenkins.md",
+          "done": true
         },
         {
           "id": "3.4",
           "requirement": "Git",
-          "evidence": "Ramos, commits e pull requests",
-          "link": "",
-          "done": false
+          "evidence": "Fluxo de ramos feature/ e fix/DEF-NNN com merges no histórico, 10 exercícios",
+          "link": "/docs/tecnico/git.md",
+          "done": true
         },
         {
           "id": "3.5",
           "requirement": "Python scripting",
-          "evidence": "Código dos testes e utilitários",
-          "link": "",
-          "done": false
+          "evidence": "Scripts Python: relatório de testes, rastreabilidade, leitura de artefactos, gerador de ordens",
+          "link": "/docs/qa/guia-de-automacao.md",
+          "done": true
         },
         {
           "id": "3.6",
           "requirement": "Shell scripting",
-          "evidence": "Healthcheck, análise de logs, execução de testes",
-          "link": "",
-          "done": false
+          "evidence": "Scripts Shell: deploy, smoke, espera ativa, testes, análise de logs, fecho do dia, backup com rotação",
+          "link": "/docs/tecnico/linux-e-shell.md",
+          "done": true
         },
         {
           "id": "3.7",
           "requirement": "Database management",
-          "evidence": "Queries de validação e integridade",
-          "link": "",
-          "done": false
+          "evidence": "11 consultas de QA em PostgreSQL (5 verificações de integridade que detetam DEF-002 e DEF-003), backup e restauro",
+          "link": "/docs/tecnico/base-de-dados.md",
+          "done": true
         },
         {
           "id": "3.8",
           "requirement": "BDD (Behavior-Driven Development) and test automation frameworks",
-          "evidence": "Features Gherkin com behave + pytest",
-          "link": "",
-          "done": false
+          "evidence": "Frameworks pytest e behave (Gherkin em português), camadas, convenções e guia para novos cenários",
+          "link": "/docs/qa/guia-de-automacao.md",
+          "done": true
         },
         {
           "id": "3.9",
           "requirement": "Leverage AI tools for test design, defect analysis, documentation and automation",
-          "evidence": "Registo de uso de IA com revisão humana",
-          "link": "",
-          "done": false
+          "evidence": "Registo do uso de IA: onde ajudou, erros apanhados na revisão, regras de proteção de dados",
+          "link": "/docs/qa/uso-de-ia.md",
+          "done": true
         }
       ]
     },
@@ -215,28 +215,41 @@
         {
           "id": "4.1",
           "requirement": "Collaborate closely with developers, business analysts, team leads, project managers, and QA colleagues",
-          "evidence": "Templates de issue e PR, Definition of Done",
-          "link": "",
-          "done": false
+          "evidence": "Colaboração por papel, sessão three amigos da liquidação, comunicação de defeitos, template de pull request",
+          "link": "/docs/processo/colaboracao.md",
+          "done": true
         },
         {
           "id": "4.2",
           "requirement": "Contribute to the continuous improvement of QA processes and automation coverage",
-          "evidence": "Retrospetiva e lista de melhorias",
-          "link": "",
-          "done": false
+          "evidence": "Retrospetiva com factos reais e 8 ações de melhoria (5 feitas)",
+          "link": "/docs/processo/retrospetiva.md",
+          "done": true
         },
         {
           "id": "4.3",
           "requirement": "Support structured testing practices and quality-focused delivery",
-          "evidence": "Processo de QA documentado",
-          "link": "",
-          "done": false
+          "evidence": "Processo de QA da história à release, Definition of Ready e Definition of Done",
+          "link": "/docs/processo/processo-de-qa.md",
+          "done": true
         },
         {
           "id": "4.4",
           "requirement": "Share knowledge and progressively support less experienced team members",
-          "evidence": "Guia de onboarding e exercícios",
+          "evidence": "Guia de onboarding de 5 dias, glossário e boas práticas",
+          "link": "/docs/onboarding/guia-de-onboarding.md",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "final",
+      "title": "Fecho do projeto",
+      "items": [
+        {
+          "id": "F1",
+          "requirement": "Gestão de defeitos no Jira: registar, acompanhar e fechar os defeitos encontrados (Jira pessoal de testes, nunca o corporativo)",
+          "evidence": "Projeto QAL num Jira Cloud gratuito pessoal",
           "link": "",
           "done": false
         }
