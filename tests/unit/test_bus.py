@@ -50,3 +50,43 @@ def test_memorybus_synchronous_delivery_and_pause():
     bus.paused.add("t")
     bus.publish("t", "k", {"n": 2})
     assert got == [{"n": 1}] and len(bus.messages) == 2
+
+
+def test_kafkabus_only_ready_after_partition_assignment(monkeypatch):
+    """DEF-015: the consumer is ready only when Kafka assigns it the partition (not just when it connects)."""
+    import threading
+    import kafka
+    from app.bus import KafkaBus
+
+    assigned_now, release = threading.Event(), threading.Event()
+    got = []
+
+    class FakeMessage:
+        topic, partition, offset, value = "trades.executed", 0, 0, b'{"n": 1}'
+
+    class FakeConsumer:
+        def __init__(self, *args, **kwargs):
+            assert kwargs["session_timeout_ms"] == 6000 and kwargs["enable_auto_commit"] is False
+            self.listener = None
+
+        def subscribe(self, topics, listener=None):
+            assert topics == ["trades.executed"]
+            self.listener = listener
+
+        def __iter__(self):
+            assigned_now.wait(5)                       # the coordinator assigns the partition later
+            self.listener.on_partitions_assigned([kafka.TopicPartition("trades.executed", 0)])
+            yield FakeMessage()
+            release.wait(5)                            # keep the consumer "alive" until the test ends
+
+        def commit(self):
+            pass
+
+    monkeypatch.setattr(kafka, "KafkaConsumer", FakeConsumer)
+    bus = KafkaBus("kafka:9092")
+    bus.start_consumer("trades.executed", "settlement-service", got.append)
+    assert _wait(lambda: True) and not bus.ready("trades.executed")     # connected, but no partition yet
+    assigned_now.set()
+    assert _wait(lambda: bus.ready("trades.executed"))
+    assert _wait(lambda: got == [{"n": 1}])
+    release.set()

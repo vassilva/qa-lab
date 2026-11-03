@@ -47,6 +47,10 @@ class MemoryBus:
     def start_consumer(self, topic, group, handler):
         self._handlers.setdefault(topic, []).append(handler)
 
+    def ready(self, topic):
+        """True when a consumer of the topic is ready to receive messages."""
+        return topic in self._handlers
+
     def ping(self):
         return True
 
@@ -69,6 +73,7 @@ class FileBus:
             c.execute("INSERT INTO messages (topic, key, value) VALUES (?, ?, ?)", (topic, key, json.dumps(value)))
 
     def start_consumer(self, topic, group, handler):
+        self._ready = getattr(self, "_ready", set()) | {topic}
         def loop():
             while True:
                 try:
@@ -89,6 +94,9 @@ class FileBus:
                 time.sleep(0.2)
         threading.Thread(target=loop, daemon=True, name=f"consumer-{topic}").start()
 
+    def ready(self, topic):
+        return topic in getattr(self, "_ready", set())
+
     def ping(self):
         return os.path.exists(self.path)
 
@@ -100,6 +108,7 @@ class KafkaBus:
         self.bootstrap = bootstrap
         self._producer = None
         self._lock = threading.Lock()
+        self._assigned = {}        # topic -> partitions assigned to this consumer (readiness, DEF-015)
 
     def _get_producer(self):
         from kafka import KafkaProducer  # installed in the container (kafka-python)
@@ -116,14 +125,30 @@ class KafkaBus:
         self._get_producer().send(topic, key=key, value=value).get(timeout=10)
 
     def start_consumer(self, topic, group, handler):
+        from kafka.consumer.subscription_state import ConsumerRebalanceListener
+        assigned = self._assigned
+
+        class Listener(ConsumerRebalanceListener):
+            # The consumer is only READY once the group coordinator has assigned it the partition.
+            # After a redeploy this waits until Kafka declares the old consumer dead (session timeout).
+            def on_partitions_revoked(self, revoked):
+                assigned[topic] = set()
+
+            def on_partitions_assigned(self, partitions):
+                assigned[topic] = {p.partition for p in partitions}
+                log.info("Consumer %s ready: partitions %s of %s assigned", group, sorted(assigned[topic]), topic)
+
         def loop():
             from kafka import KafkaConsumer, TopicPartition
             while True:
                 try:
                     consumer = KafkaConsumer(
-                        topic, bootstrap_servers=self.bootstrap, group_id=group, enable_auto_commit=False,
-                        auto_offset_reset="earliest", value_deserializer=lambda v: v)
-                    log.info("Consumer %s connected to topic %s (%s)", group, topic, self.bootstrap)
+                        bootstrap_servers=self.bootstrap, group_id=group, enable_auto_commit=False,
+                        auto_offset_reset="earliest", value_deserializer=lambda v: v,
+                        session_timeout_ms=6000, heartbeat_interval_ms=2000)   # faster takeover after a redeploy
+                    consumer.subscribe([topic], listener=Listener())
+                    log.info("Consumer %s connected to topic %s (%s), waiting for partition assignment",
+                             group, topic, self.bootstrap)
                     for msg in consumer:
                         try:
                             handler(json.loads(msg.value.decode("utf-8")))
@@ -137,9 +162,13 @@ class KafkaBus:
                             handler({"_raw": msg.value.decode("utf-8", "replace")})   # goes to the DLQ
                         consumer.commit()
                 except Exception as exc:  # noqa: BLE001 - Kafka unavailable: retry
+                    assigned[topic] = set()
                     log.warning("Kafka unavailable for consumer %s (%s); retrying in 3 s", group, exc)
                     time.sleep(3)
         threading.Thread(target=loop, daemon=True, name=f"consumer-{topic}").start()
+
+    def ready(self, topic):
+        return bool(self._assigned.get(topic))
 
     def ping(self):
         try:
