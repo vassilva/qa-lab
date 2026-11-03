@@ -64,37 +64,37 @@
         {
           "id": "1.1",
           "requirement": "Build and execute comprehensive test strategies for standalone testing",
-          "evidence": "Documento de estratégia + testes isolados com dados controlados",
-          "link": "",
-          "done": false
+          "evidence": "Estratégia de testes: abordagem standalone por componente, depois de ponta a ponta",
+          "link": "/docs/qa/estrategia-de-testes.md",
+          "done": true
         },
         {
           "id": "1.2",
           "requirement": "Define test objectives, scope, and acceptance criteria",
-          "evidence": "Objetivos, âmbito e critérios de aceitação em Gherkin",
-          "link": "",
-          "done": false
+          "evidence": "Objetivos, âmbito e critérios de entrada/saída + 15 critérios de aceitação (AC-V, AC-N, AC-L) em Gherkin",
+          "link": "/docs/qa/estrategia-de-testes.md",
+          "done": true
         },
         {
           "id": "1.3",
           "requirement": "Identify and prioritise test cases based on risk and business impact",
-          "evidence": "Matriz de risco + tags de prioridade nos testes",
-          "link": "",
-          "done": false
+          "evidence": "Matriz de risco (13 riscos de negócio, 4 técnicos) e tags @critico / @alto / @medio",
+          "link": "/docs/qa/matriz-de-risco.md",
+          "done": true
         },
         {
           "id": "1.4",
           "requirement": "Apply solid functional understanding to validate application behaviour and business flows",
-          "evidence": "Cenários de execução, parcial, preço-tempo e rejeições",
-          "link": "",
-          "done": false
+          "evidence": "27 cenários BDD de negociação e liquidação, a correr contra o ambiente QA",
+          "link": "/docs/qa/estrategia-de-testes.md",
+          "done": true
         },
         {
           "id": "1.5",
           "requirement": "Contribute to regression testing and release validation activities",
-          "evidence": "Suite de regressão + checklist de go/no-go",
-          "link": "",
-          "done": false
+          "evidence": "Regressão BDD no pipeline (completa ou crítica), resumo de testes e checklist go/no-go",
+          "link": "/docs/qa/checklist-release.md",
+          "done": true
         }
       ]
     },

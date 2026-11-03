@@ -7,6 +7,10 @@ USER root
 COPY --from=docker:29-cli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=docker:29-cli /usr/local/libexec/docker/cli-plugins/ /usr/local/libexec/docker/cli-plugins/
 
+# Python para os scripts de apoio (ex.: resumo de testes)
+RUN apt-get update && apt-get install -y --no-install-recommends python3 \
+    && rm -rf /var/lib/apt/lists/*
+
 # O repositório é montado a partir do Windows com outro dono: o Git tem de confiar nele
 RUN git config --system --add safe.directory '*'
 

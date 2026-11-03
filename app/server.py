@@ -101,6 +101,28 @@ def checklist_data():
         return app.response_class(f.read(), mimetype="application/json")
 
 
+DOCS_DIR = os.path.join(BASE_DIR, "docs")
+
+
+@app.get("/docs/")
+def docs_index():
+    return send_from_directory(app.static_folder, "docs.html")
+
+
+@app.get("/docs/<path:name>")
+def docs_page(name):
+    if not name.endswith(".md") or not os.path.isfile(os.path.join(DOCS_DIR, name)):
+        abort(404)
+    return send_from_directory(app.static_folder, "docs.html")
+
+
+@app.get("/docs-raw/<path:name>")
+def docs_raw(name):
+    if not name.endswith(".md"):
+        abort(404)
+    return send_from_directory(DOCS_DIR, name, mimetype="text/markdown; charset=utf-8")
+
+
 @app.get("/reports/")
 @app.get("/reports/<path:name>")
 def reports(name="index.html"):

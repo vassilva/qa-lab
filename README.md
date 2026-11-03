@@ -36,12 +36,30 @@ Base de dados: utilizador `qa`, password `qa`, base `qa_lab`.
 ## Pipeline (Jenkinsfile)
 
 ```
-Preparar → Build da imagem → Testes unitários e de API → Deploy QA → Smoke QA
-        → Regressão BDD (QA) → Deploy UAT → Smoke UAT → Aprovação go/no-go
+Preparar → Build da imagem → Testes de componente e API → Deploy QA → Smoke QA
+        → Regressão BDD (QA) → Deploy UAT → Smoke UAT → Resumo de testes → Aprovação go/no-go
 ```
 
 A imagem é construída **uma vez** (`qa-lab:<versão>-<commit>`) e a mesma imagem é promovida de QA para UAT.
 O Jenkins verifica o repositório a cada 2 minutos: cada `git commit` dispara o pipeline.
+
+## Testes
+
+| Nível | Onde | Como correr |
+| --- | --- | --- |
+| Componentes e API (standalone) | `tests/` (pytest) | `bash scripts/run_tests.sh unit` |
+| Aceitação BDD (Gherkin em português) | `features/` (behave) | `bash scripts/run_tests.sh bdd` (só em QA) |
+| Só os críticos | | `BDD_TAGS=@critico bash scripts/run_tests.sh bdd` |
+| Um critério de aceitação | | `BDD_TAGS=@AC-L03 bash scripts/run_tests.sh bdd` |
+| Smoke pós-deploy | `scripts/smoke.sh` | `bash scripts/smoke.sh` |
+
+Os cenários BDD reiniciam os dados, por isso **recusam correr em UAT**.
+No Jenkins, **Build with Parameters** permite escolher regressão `completa` ou `critica`.
+
+Documentação de QA (também em `/docs/` na página da aplicação):
+- [Estratégia de testes](docs/qa/estrategia-de-testes.md)
+- [Matriz de risco](docs/qa/matriz-de-risco.md)
+- [Checklist de release (go/no-go)](docs/qa/checklist-release.md)
 
 ## Arranque (Windows, PowerShell no VS Code)
 
@@ -120,7 +138,8 @@ app/                 componentes da aplicação e páginas web (app/static)
 db/schema.sql        esquema da base de dados
 docker/              arranque do contentor
 envs/                configuração dos ambientes QA e UAT
-features/            cenários BDD (Gherkin)
+features/            cenários BDD (Gherkin) e passos automatizados (features/steps)
+docs/qa/             estratégia de testes, matriz de risco, checklist de release
 jenkins/             Jenkins do laboratório (configuração como código)
 scripts/             deploy, smoke test, testes, espera pelo serviço
 tests/               testes pytest (unitários e de API)
