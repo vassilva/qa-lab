@@ -1,10 +1,10 @@
 """
-Persistência: ordens, negócios, instruções de liquidação e estado do sistema.
+Persistence: orders, trades, settlement instructions, outbox and system state.
 
-- Com DATABASE_URL (ex.: postgresql://qa:qa@db:5432/qa_lab) usa PostgreSQL.
-- Sem DATABASE_URL usa um ficheiro SQLite local (útil para testes unitários rápidos).
+- With DATABASE_URL (e.g. postgresql://qa:qa@db:5432/qa_lab) it uses PostgreSQL.
+- Without DATABASE_URL it uses a local SQLite file (useful for fast unit tests).
 
-O SQL é escrito de forma compatível com os dois motores.
+The SQL is written to be compatible with both engines.
 """
 
 import os
@@ -42,24 +42,24 @@ class Database:
         return "postgresql" if self.is_postgres else "sqlite"
 
     def _connect_postgres(self):
-        import psycopg  # instalado no contentor via requirements.txt
+        import psycopg  # installed in the container from requirements.txt
         try:
             self.conn = psycopg.connect(self.url, autocommit=False)
         except psycopg.OperationalError as exc:
             if "does not exist" not in str(exc):
                 raise
-            # Cada sistema tem a sua base de dados: cria-a na primeira utilização (ex.: "settlement")
+            # Each system has its own database: create it on first use (e.g. "settlement")
             base, _, dbname = self.url.rpartition("/")
             dbname = dbname.split("?")[0]
             with psycopg.connect(base + "/postgres", autocommit=True) as admin:
                 admin.execute(f'CREATE DATABASE "{dbname}"')
             self.conn = psycopg.connect(self.url, autocommit=False)
 
-    # ------------------------------------------------------------------ utilitários
+    # ------------------------------------------------------------------ utilities
     def execute(self, statement, params=None):
         with self._lock:
             if self.is_postgres and self.conn.closed:
-                self._connect_postgres()      # ligação perdida (ex.: PostgreSQL reiniciado)
+                self._connect_postgres()      # connection lost (e.g. PostgreSQL restarted)
             cur = self.conn.cursor()
             if params:
                 if self.is_postgres:
@@ -102,7 +102,7 @@ class Database:
     def tables(self):
         with open(self.schema_file, encoding="utf-8") as f:
             import re
-            return re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", f.read())[::-1]   # filhos antes dos pais
+            return re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", f.read())[::-1]   # children before parents
 
     def ping(self):
         try:
@@ -117,7 +117,7 @@ class Database:
                 pass
             return False
 
-    # ------------------------------------------------------------------ ordens e negócios
+    # ------------------------------------------------------------------ orders and trades
     def save_order(self, o):
         self.execute(
             """INSERT INTO orders (order_id, symbol, side, qty, price, remaining, status, reject_reason)
@@ -153,7 +153,7 @@ class Database:
                 for r in self._rows("SELECT trade_id, symbol, buy_order_id, sell_order_id, qty, price, trade_date "
                                     "FROM trades ORDER BY trade_id")]
 
-    # ------------------------------------------------------------------ liquidação
+    # ------------------------------------------------------------------ settlement
     def insert_instruction(self, i):
         self.execute(
             """INSERT INTO settlement_instructions
@@ -230,7 +230,7 @@ class Database:
                           "WHERE status IN ('PENDING', 'FAILED', 'ON_HOLD') AND intended_settlement_date <= ? "
                           "ORDER BY instruction_id", (business_date,))
 
-    # ------------------------------------------------------------------ estado do sistema
+    # ------------------------------------------------------------------ system state
     def get_state(self, key):
         rows = self._rows("SELECT state_value FROM system_state WHERE state_key = ?", (key,))
         return rows[0]["state_value"] if rows else None
@@ -242,24 +242,24 @@ class Database:
             (key, value),
         )
 
-    # ------------------------------------------------------------------ consola SQL
+    # ------------------------------------------------------------------ SQL console
     def run_query(self, sql):
-        """Executa uma query só de leitura (SELECT/WITH) e devolve colunas e linhas."""
+        """Runs a read-only query (SELECT/WITH) and returns columns and rows."""
         statement = sql.strip().rstrip(";").strip()
         if not statement.lower().startswith(("select", "with")) or ";" in statement:
-            raise ValueError("Só são permitidas queries SELECT (uma de cada vez).")
+            raise ValueError("Only SELECT queries are allowed (one at a time).")
         with self._lock:
             try:
                 cur = self.execute(statement)
                 cols = [d[0] for d in cur.description]
                 rows = [[_plain(v) for v in r] for r in cur.fetchmany(500)]
             finally:
-                self.rollback()  # a consola nunca altera dados
+                self.rollback()  # the console never changes data
         return cols, rows
 
 
 def _plain(value):
-    """Converte tipos do PostgreSQL (Decimal, datas) em valores simples para JSON."""
+    """Converts PostgreSQL types (Decimal, dates) into plain JSON values."""
     if value is None or isinstance(value, (int, float, str)):
         return value
     if isinstance(value, Decimal):

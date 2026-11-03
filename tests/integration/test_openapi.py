@@ -1,4 +1,4 @@
-"""Teste de contrato das APIs: todas as rotas da API estão documentadas no OpenAPI, e o OpenAPI não tem rotas fantasma."""
+"""API contract test: every API route is documented in OpenAPI, and OpenAPI has no ghost routes."""
 
 import os
 import re
@@ -30,8 +30,8 @@ def _spec(name):
 @pytest.mark.parametrize("module, spec_file", [("server", "trading.openapi.yaml"),
                                                ("settlement_service", "settlement.openapi.yaml"),
                                                ("t2s_simulator", "t2s-simulator.openapi.yaml")])
-def test_openapi_cobre_todas_as_rotas(services, module, spec_file):
+def test_openapi_covers_every_route(services, module, spec_file):
     from importlib import import_module
     routes, spec = _routes(import_module(f"app.{module}").app), _spec(spec_file)
-    assert routes - spec == set(), f"Rotas sem documentação OpenAPI: {sorted(routes - spec)}"
-    assert spec - routes == set(), f"Rotas documentadas que não existem: {sorted(spec - routes)}"
+    assert routes - spec == set(), f"Routes without OpenAPI documentation: {sorted(routes - spec)}"
+    assert spec - routes == set(), f"Documented routes that do not exist: {sorted(spec - routes)}"

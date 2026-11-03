@@ -1,14 +1,14 @@
 """
 Matching Engine (ME).
 
-Cruza ordens de compra e venda por prioridade preço-tempo, como o motor de uma bolsa:
-- compras: preço mais alto primeiro; vendas: preço mais baixo primeiro
-- com o mesmo preço, executa primeiro a ordem que chegou antes
-- o negócio é feito ao preço da ordem que já estava no livro
-- execução parcial: o restante fica no livro
-- ordens de mercado sem contraparte suficiente não ficam no livro
+Matches buy and sell orders by price-time priority, like an exchange's matching engine:
+- buys: highest price first; sells: lowest price first
+- at the same price, the order that arrived first executes first
+- the trade is done at the price of the order that was already resting in the book
+- partial fill: the remainder stays in the book
+- market orders without enough liquidity do not rest in the book
 
-Só recebe ordens já validadas pelo Order Entry Gateway.
+Only receives orders already validated by the Order Entry Gateway.
 """
 
 import itertools
@@ -21,8 +21,8 @@ log = get_logger("ME")
 
 class MatchingEngine:
     def __init__(self, trade_date_provider=None):
-        self.bids = {}      # compras em espera, por símbolo
-        self.asks = {}      # vendas em espera, por símbolo
+        self.bids = {}      # resting buy orders, by symbol
+        self.asks = {}      # resting sell orders, by symbol
         self.trades = []
         self.orders = {}
         self._seq = itertools.count(1)
@@ -30,12 +30,12 @@ class MatchingEngine:
         self._order_seq = itertools.count(1)
         self._trade_date = trade_date_provider or (lambda: "")
 
-    # ------------------------------------------------------------------ identificadores e estado
+    # ------------------------------------------------------------------ identifiers and state
     def next_order_id(self):
         return f"O{next(self._order_seq):05d}"
 
     def restore(self, orders, trades):
-        """Reconstrói o estado a partir da base de dados (após reinício do serviço)."""
+        """Rebuilds the state from the database (after a service restart)."""
         for o in sorted(orders, key=lambda x: x.order_id):
             o.seq = next(self._seq)
             self.orders[o.order_id] = o
@@ -46,13 +46,13 @@ class MatchingEngine:
         self.trades = sorted(trades, key=lambda t: t.trade_id)
         self._order_seq = itertools.count(_next_number(self.orders))
         self._trade_seq = itertools.count(_next_number({t.trade_id: t for t in self.trades}))
-        log.info("Estado restaurado: %d ordens, %d negócios", len(self.orders), len(self.trades))
+        log.info("State restored: %d orders, %d trades", len(self.orders), len(self.trades))
 
     def register_rejected(self, order):
         order.seq = next(self._seq)
         self.orders[order.order_id] = order
 
-    # ------------------------------------------------------------------ livro de ordens (market data)
+    # ------------------------------------------------------------------ order book (market data)
     def _book_side(self, symbol, side):
         book = self.bids if side == "BUY" else self.asks
         return book.setdefault(symbol, [])
@@ -69,7 +69,7 @@ class MatchingEngine:
             "asks": [o.to_dict() for o in self._book_side(symbol, "SELL")],
         }
 
-    # ------------------------------------------------------------------ entrada de ordens
+    # ------------------------------------------------------------------ order entry
     def submit(self, order: Order) -> Order:
         order.seq = next(self._seq)
         self.orders[order.order_id] = order
@@ -77,12 +77,12 @@ class MatchingEngine:
         if order.remaining > 0:
             if order.price is None:
                 order.status = "CANCELLED" if order.remaining == order.qty else "PARTIALLY_FILLED"
-                log.info("Ordem de mercado %s sem contraparte suficiente (restam %d, não fica no livro)",
+                log.info("Market order %s without enough liquidity (%d left, not added to the book)",
                          order.order_id, order.remaining)
             else:
                 self._book_side(order.symbol, order.side).append(order)
                 self._sort_book(order.symbol)
-                log.info("Ordem %s no livro: %s %d %s @ %.2f", order.order_id, order.side,
+                log.info("Order %s added to the book: %s %d %s @ %.2f", order.order_id, order.side,
                          order.remaining, order.symbol, order.price)
         return order
 
@@ -108,7 +108,7 @@ class MatchingEngine:
             trade = Trade(f"T{next(self._trade_seq):05d}", incoming.symbol, buy.order_id,
                           sell.order_id, qty, price, self._trade_date())
             self.trades.append(trade)
-            log.info("Negócio %s: %d %s @ %.2f (compra %s / venda %s)", trade.trade_id, qty,
+            log.info("Trade %s: %d %s @ %.2f (buy %s / sell %s)", trade.trade_id, qty,
                      trade.symbol, price, buy.order_id, sell.order_id)
 
             incoming.remaining -= qty
@@ -127,7 +127,7 @@ class MatchingEngine:
         if order in side:
             side.remove(order)
         order.status = "CANCELLED"
-        log.info("Ordem %s cancelada (restavam %d)", order_id, order.remaining)
+        log.info("Order %s cancelled (%d remaining)", order_id, order.remaining)
         return True
 
 

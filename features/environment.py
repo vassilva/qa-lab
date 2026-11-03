@@ -1,11 +1,11 @@
 """
-Configuração dos testes BDD (behave).
+BDD test setup (behave).
 
-Os cenários correm contra um ambiente em execução, através da API REST:
-    BASE_URL (por omissão http://localhost:8000)
+The scenarios run against a running environment, through the REST API:
+    BASE_URL (default http://localhost:8000)
 
-Proteção: os cenários reiniciam o ambiente antes de cada teste, por isso o framework
-RECUSA correr num ambiente que não seja QA ou LOCAL (nunca em UAT).
+Protection: the scenarios reset the environment before each test, so the framework
+REFUSES to run against any environment other than QA or LOCAL (never UAT).
 """
 
 import os
@@ -16,7 +16,7 @@ ALLOWED_ENVIRONMENTS = {"QA", "LOCAL"}
 
 
 class Api:
-    """Pequeno cliente da API do QA Lab, partilhado pelos passos."""
+    """Small QA Lab API client shared by the steps."""
 
     def __init__(self, base_url):
         self.base_url = base_url.rstrip("/")
@@ -33,7 +33,7 @@ class Api:
 
     def query(self, sql):
         r = self.post("/api/query", {"sql": sql})
-        assert r.status_code == 200, f"Query falhou ({r.status_code}): {r.text}"
+        assert r.status_code == 200, f"Query failed ({r.status_code}): {r.text}"
         return r.json()["rows"]
 
 
@@ -43,30 +43,30 @@ def before_all(context):
     try:
         health = context.api.get("/health").json()
     except requests.RequestException as exc:
-        raise RuntimeError(f"O ambiente {base_url} não responde: {exc}") from exc
+        raise RuntimeError(f"The environment {base_url} does not respond: {exc}") from exc
 
     environment = str(health.get("environment", "")).upper()
     if environment not in ALLOWED_ENVIRONMENTS:
         raise RuntimeError(
-            f"Os cenários BDD reiniciam os dados e só podem correr em QA ou LOCAL. "
-            f"O ambiente {base_url} é {environment}: execução cancelada para o proteger."
+            f"The BDD scenarios reset the data and may only run in QA or LOCAL. "
+            f"The environment {base_url} is {environment}: run cancelled to protect it."
         )
-    print(f"BDD contra {base_url} · ambiente {environment} · versão {health.get('version')} "
-          f"· base de dados {health.get('database')}")
-    context.cleanup_allowed = True     # só depois de confirmar que NÃO é UAT
+    print(f"BDD against {base_url} · environment {environment} · version {health.get('version')} "
+          f"· database {health.get('database')}")
+    context.cleanup_allowed = True     # only after confirming this is NOT UAT
 
 
 def before_scenario(context, scenario):
-    context.orders = {}          # alias usado no cenário (ex.: "V1") → ordem devolvida pela API
+    context.orders = {}          # alias used in the scenario (e.g. "S1") → order returned by the API
     context.last_response = None
     context.trade = None
 
 
 def after_all(context):
-    """Deixa o ambiente como estava antes dos testes: sem dados de teste e com a data de negócio de hoje."""
+    """Leaves the environment as it was before the tests: no test data and today's business date."""
     if not getattr(context, "cleanup_allowed", False):
-        return                              # ambiente protegido (ex.: UAT): nunca limpar
+        return                              # protected environment (e.g. UAT): never clean up
     try:
         context.api.post("/api/reset")
-    except Exception as exc:  # noqa: BLE001 - não esconder o resultado dos testes por causa da limpeza
-        print(f"Aviso: não foi possível limpar o ambiente depois dos testes: {exc}")
+    except Exception as exc:  # noqa: BLE001 - do not hide the test result because of the cleanup
+        print(f"Warning: could not clean up the environment after the tests: {exc}")

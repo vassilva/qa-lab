@@ -1,4 +1,4 @@
-"""Cliente HTTP simples entre serviços (Trading → Settlement → simulador T2S), com timeout e erros claros."""
+"""Simple HTTP client between services (Trading → Settlement → T2S simulator), with timeouts and clear errors."""
 
 import requests
 
@@ -14,11 +14,11 @@ class ServiceClient:
         self.timeout = timeout
 
     def request(self, method, path, json=None, timeout=None):
-        """Devolve (código HTTP, corpo JSON). Lança ServiceUnavailable se o serviço não responder."""
+        """Returns (HTTP status, JSON body). Raises ServiceUnavailable if the service does not respond."""
         try:
             r = requests.request(method, self.base_url + path, json=json, timeout=timeout or self.timeout)
         except requests.RequestException as exc:
-            raise ServiceUnavailable(f"{self.name} indisponível em {self.base_url}: {exc.__class__.__name__}") from exc
+            raise ServiceUnavailable(f"{self.name} unavailable at {self.base_url}: {exc.__class__.__name__}") from exc
         try:
             body = r.json()
         except ValueError:

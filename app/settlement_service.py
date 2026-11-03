@@ -1,11 +1,11 @@
 """
-Serviço SETTLEMENT (sistema separado do Trading), inspirado na liquidação da Euronext Securities.
+SETTLEMENT service (a system separate from Trading), inspired by Euronext Securities settlement.
 
-- Consome o tópico Kafka "trades.executed" (contrato contracts/trade-executed.v1.schema.json)
-- Valida cada mensagem; as inválidas vão para o tópico "trades.executed.dlq" e para a tabela rejected_events
-- É idempotente: o mesmo negócio recebido duas vezes cria uma só instrução
-- Liquida no fecho do dia através do T2S (simulador), por troca de ficheiros
-- Tem a sua própria base de dados (DATABASE_URL, ex.: .../settlement)
+- Consumes the Kafka topic "trades.executed" (contract contracts/trade-executed.v1.schema.json)
+- Validates each message; invalid ones go to the "trades.executed.dlq" topic and the rejected_events table
+- Is idempotent: the same trade received twice creates a single instruction
+- Settles at end of day through T2S (simulator), by exchanging files
+- Has its own database (DATABASE_URL, e.g. .../settlement)
 
 API: /health, /api/business-date, /api/settlement/instructions, /api/eod, /api/rejected-events, /api/query ...
 """
@@ -39,25 +39,25 @@ bus = busmod.get_bus()
 state = {"generation": 0, "paused": False, "processed": 0, "duplicates": 0, "rejected": 0, "stale": 0}
 
 
-# ---------------------------------------------------------------------- consumidor de eventos
+# ---------------------------------------------------------------------- event consumer
 def handle_trade_event(event):
-    """Processa um evento do tópico trades.executed. Levanta RetryableError em falhas temporárias."""
+    """Processes an event from the trades.executed topic. Raises RetryableError on temporary failures."""
     if state["paused"]:
-        raise busmod.RetryableError("consumidor em pausa")
-    errors = ["mensagem não é JSON"] if "_raw" in event else validate_trade_executed(event)
+        raise busmod.RetryableError("consumer paused")
+    errors = ["message is not JSON"] if "_raw" in event else validate_trade_executed(event)
     with lock:
         try:
             if errors:
                 reason = "; ".join(errors)
-                log.warning("Evento REJEITADO (contrato trade-executed v1): %s", reason)
+                log.warning("Event REJECTED (trade-executed v1 contract): %s", reason)
                 database.insert_rejected_event(reason, json.dumps(event)[:4000])
                 database.commit()
-                bus.publish(busmod.TOPIC_TRADES_DLQ, str(event.get("event_id", "invalido")),
+                bus.publish(busmod.TOPIC_TRADES_DLQ, str(event.get("event_id", "invalid")),
                             {"reason": reason, "original": event})
                 state["rejected"] += 1
                 return
             if event["generation"] < state["generation"]:
-                log.info("Evento %s de uma geração anterior do ambiente ignorado (reinício de testes)", event["event_id"])
+                log.info("Event %s from a previous environment generation ignored (test reset)", event["event_id"])
                 state["stale"] += 1
                 return
             before = database.instruction_for_trade(event["trade"]["trade_id"])
@@ -65,7 +65,7 @@ def handle_trade_event(event):
             state["duplicates" if before else "processed"] += 1
         except busmod.RetryableError:
             raise
-        except Exception as exc:  # noqa: BLE001 - base de dados em baixo, etc.: tentar outra vez
+        except Exception as exc:  # noqa: BLE001 - database down, etc.: retry
             database.rollback()
             raise busmod.RetryableError(str(exc)) from exc
 
@@ -105,9 +105,9 @@ def set_business_date():
     try:
         new_date = date.fromisoformat(str(_json().get("date", "")))
     except ValueError:
-        abort(400, description="Data inválida: usa o formato AAAA-MM-DD")
+        abort(400, description="Invalid date: use the format YYYY-MM-DD")
     if not is_business_day(new_date):
-        abort(400, description=f"{new_date.isoformat()} não é um dia útil (fim de semana ou feriado TARGET2)")
+        abort(400, description=f"{new_date.isoformat()} is not a business day (weekend or TARGET2 holiday)")
     with lock:
         settlement.set_business_date(new_date)
     return jsonify(business_date=new_date.isoformat())
@@ -125,13 +125,13 @@ def instructions():
 @app.post("/api/settlement/instructions/<instruction_id>/<action>")
 def instruction_action(instruction_id, action):
     if action not in ("hold", "release"):
-        abort(400, description="Ação inválida: usa hold ou release")
+        abort(400, description="Invalid action: use hold or release")
     with lock:
         ok = settlement.hold(instruction_id) if action == "hold" else settlement.release(instruction_id)
         instruction = database.get_instruction(instruction_id)
         database.rollback()
     if not ok:
-        return jsonify(error=f"Não foi possível aplicar {action} a {instruction_id}", instruction=instruction), 409
+        return jsonify(error=f"Could not apply {action} to {instruction_id}", instruction=instruction), 409
     return jsonify(instruction)
 
 
@@ -151,26 +151,26 @@ def rejected_events():
 
 @app.post("/api/consumer/<action>")
 def consumer_control(action):
-    """Pausar/retomar o consumidor: simula o Settlement indisponível (não disponível em UAT)."""
+    """Pause/resume the consumer: simulates Settlement being unavailable (not available in UAT)."""
     if ENV_NAME == "UAT":
-        abort(403, description="Não disponível em UAT")
+        abort(403, description="Not available in UAT")
     if action not in ("pause", "resume"):
-        abort(400, description="Ação inválida: usa pause ou resume")
+        abort(400, description="Invalid action: use pause or resume")
     state["paused"] = action == "pause"
-    log.warning("Consumidor de eventos %s", "EM PAUSA" if state["paused"] else "retomado")
+    log.warning("Event consumer %s", "PAUSED" if state["paused"] else "resumed")
     return jsonify(paused=state["paused"])
 
 
 @app.post("/api/reset")
 def reset():
-    """Limpa os dados do Settlement e adota a nova geração do ambiente (ignora eventos antigos ainda em trânsito)."""
+    """Clears Settlement data and adopts the new environment generation (ignores old events still in transit)."""
     with lock:
         database.reset()
         database.execute("DELETE FROM system_state WHERE state_key = 'business_date'")
         database.commit()
         state.update(generation=int(_json().get("generation", state["generation"])), paused=False,
                      processed=0, duplicates=0, rejected=0, stale=0)
-    log.info("Settlement reiniciado (geração %d)", state["generation"])
+    log.info("Settlement reset (generation %d)", state["generation"])
     return jsonify(status="reset", generation=state["generation"])
 
 
@@ -186,7 +186,7 @@ def query():
 
 def main():
     port = int(os.environ.get("PORT", "8001"))
-    log.info("Settlement %s versão %s a arrancar na porta %d (barramento: %s, base de dados: %s)",
+    log.info("Settlement %s version %s starting on port %d (bus: %s, database: %s)",
              ENV_NAME, APP_VERSION, port, bus.name, database.engine_name)
     app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
 

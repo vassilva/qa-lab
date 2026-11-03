@@ -2,48 +2,48 @@ openapi: 3.0.3
 info:
   title: QA Lab · Settlement API
   version: 0.5.0
-  description: 'Serviço de liquidação T+2: consome trades.executed (Kafka), liquida no T2S por ficheiros.'
+  description: 'T+2 settlement service: consumes trades.executed (Kafka), settles at T2S through files.'
 servers:
 - url: http://localhost:8001
   description: QA
 paths:
   /health:
     get:
-      summary: Estado do serviço, da base de dados, do barramento e do consumidor
+      summary: Status of the service, database, bus and consumer
       responses:
         '200':
           description: OK
         '503':
-          description: Degradado
+          description: Degraded
   /api/business-date:
     get:
-      summary: Data de negócio
+      summary: Business date
       responses:
         '200':
           description: OK
     post:
-      summary: Mudar a data de negócio (só dias úteis TARGET2)
+      summary: Change the business date (TARGET2 business days only)
       responses:
         '200':
           description: OK
         '400':
-          description: Pedido inválido
+          description: Invalid request
   /api/settlement/instructions:
     get:
-      summary: Instruções (filtros ?status= e ?trade_id=)
+      summary: Instructions (filters ?status= and ?trade_id=)
       responses:
         '200':
           description: OK
   /api/settlement/instructions/{instruction_id}/{action}:
     post:
-      summary: Hold ou release
+      summary: Hold or release
       responses:
         '200':
           description: OK
         '400':
-          description: Pedido inválido
+          description: Invalid request
         '409':
-          description: Estado não permite a operação
+          description: Current status does not allow the operation
       parameters:
       - name: instruction_id
         in: path
@@ -57,26 +57,26 @@ paths:
           type: string
   /api/eod:
     post:
-      summary: 'Fecho do dia: ficheiro para o T2S, confirmações, relatório'
+      summary: 'End of day: file to T2S, confirmations, report'
       responses:
         '200':
           description: OK
   /api/rejected-events:
     get:
-      summary: Mensagens rejeitadas pelo contrato (DLQ)
+      summary: Messages rejected by the contract (DLQ)
       responses:
         '200':
           description: OK
   /api/consumer/{action}:
     post:
-      summary: Pausar ou retomar o consumidor (simular indisponibilidade)
+      summary: Pause or resume the consumer (simulate unavailability)
       responses:
         '200':
           description: OK
         '400':
-          description: Pedido inválido
+          description: Invalid request
         '403':
-          description: Não disponível em UAT
+          description: Not available in UAT
       parameters:
       - name: action
         in: path
@@ -85,15 +85,15 @@ paths:
           type: string
   /api/reset:
     post:
-      summary: Limpar dados e adotar a nova geração do ambiente
+      summary: Clear data and adopt the new environment generation
       responses:
         '200':
           description: OK
   /api/query:
     post:
-      summary: Consulta SQL só de leitura
+      summary: Read-only SQL query
       responses:
         '200':
           description: OK
         '400':
-          description: Pedido inválido
+          description: Invalid request

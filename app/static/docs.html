@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="pt">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QA Lab · Documentação de QA</title>
+<title>QA Lab · QA documentation</title>
 <style>
   :root{--bg:#0f1729;--panel:#16213a;--line:#25324f;--text:#e8ecf4;--muted:#93a0b8;--accent:#5b9cf5}
   *{box-sizing:border-box}
@@ -26,39 +26,39 @@
 </head>
 <body>
 <header>
-  <strong>QA Lab · Documentação de QA</strong>
+  <strong>QA Lab · QA documentation</strong>
   <nav>
-    <a href="/docs/">Índice</a>
-    <a href="/docs/qa/estrategia-de-testes.md">Estratégia de testes</a>
-    <a href="/docs/qa/matriz-de-risco.md">Matriz de risco</a>
-    <a href="/docs/qa/checklist-release.md">Checklist de release</a>
-    <a href="/checklist">Checklist da vaga</a>
-    <a href="/">Mini bolsa</a>
+    <a href="/docs/">Index</a>
+    <a href="/docs/qa/test-strategy.md">Test strategy</a>
+    <a href="/docs/qa/risk-matrix.md">Risk matrix</a>
+    <a href="/docs/qa/release-checklist.md">Release checklist</a>
+    <a href="/checklist">Job checklist</a>
+    <a href="/">Mini exchange</a>
   </nav>
 </header>
-<main id="content">A carregar…</main>
+<main id="content">Loading…</main>
 <script src="/static/markdown.js"></script>
 <script>
 const path = location.pathname.replace(/^\/docs\//, "");
-const GROUPS = {qa: "Qualidade (estratégia, risco, testes, relatórios)", defeitos: "Defeitos", tecnico: "Técnico (Linux, SQL, Git, Jenkins)",
-                processo: "Processo e colaboração", onboarding: "Onboarding"};
+const GROUPS = {qa: "Quality (strategy, risk, tests, reports)", defects: "Defects", technical: "Technical (architecture, Linux, SQL, Git, Jenkins)",
+                process: "Process and collaboration", onboarding: "Onboarding"};
 if (!path) {
   fetch("/api/docs").then(r => r.json()).then(items => {
     const main = document.getElementById("content");
-    let md = "# Documentação do QA Lab\n\n";
+    let md = "# QA Lab documentation\n\n";
     for (const g of Object.keys(GROUPS)) {
       const mine = items.filter(i => i.folder === g);
       if (!mine.length) continue;
       md += `## ${GROUPS[g]}\n\n` + mine.map(i => `- [${i.title}](/docs/${i.path})`).join("\n") + "\n\n";
     }
     main.innerHTML = window.renderMarkdown(md);
-    document.title = "Documentação do QA Lab";
+    document.title = "QA Lab documentation";
   });
 } else fetch("/docs-raw/" + path).then(r => r.ok ? r.text() : Promise.reject(r.status)).then(md => {
   const main = document.getElementById("content");
   main.innerHTML = window.renderMarkdown(md);
   const h1 = main.querySelector("h1"); if (h1) document.title = h1.textContent;
-}).catch(() => { document.getElementById("content").textContent = "Documento não encontrado."; });
+}).catch(() => { document.getElementById("content").textContent = "Document not found."; });
 </script>
 </body>
 </html>

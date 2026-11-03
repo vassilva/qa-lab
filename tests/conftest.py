@@ -1,9 +1,9 @@
 """
-Configuração partilhada dos testes pytest.
+Shared pytest configuration.
 
-Os três sistemas (Trading, Settlement e simulador T2S) correm no mesmo processo, com bases de dados SQLite
-temporárias e o barramento em memória (entrega síncrona). As chamadas HTTP entre serviços são encaminhadas
-diretamente para o cliente de teste de cada aplicação. Testes standalone: nunca tocam nos ambientes reais.
+The three systems (Trading, Settlement and the T2S simulator) run in the same process, with temporary SQLite
+databases and the in-memory bus (synchronous delivery). HTTP calls between services are routed straight
+to each application's test client. Standalone tests: they never touch the real environments.
 """
 
 import os
@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class ClientAdapter:
-    """Mesma interface do ServiceClient, mas sobre o cliente de teste do Flask (sem rede)."""
+    """Same interface as ServiceClient, but on top of the Flask test client (no network)."""
 
     def __init__(self, flask_app):
         self.client = flask_app.test_client()
@@ -47,5 +47,5 @@ def client(services):
     server = services[0]
     with server.app.test_client() as c:
         c.post("/api/reset")
-        c.post("/api/business-date", json={"date": "2026-11-02"})   # segunda-feira
+        c.post("/api/business-date", json={"date": "2026-11-02"})   # Monday
         yield c

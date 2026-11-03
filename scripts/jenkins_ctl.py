@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Controlo do Jenkins do laboratorio (correcao tecnica do DEF-008).
+Lab Jenkins control (technical fix for DEF-008).
 
-Corre DENTRO do contentor do Jenkins (so usa a biblioteca padrao):
-    python3 /tmp/jenkins_ctl.py quiet-down   # nao arranca builds novos; espera que os builds em curso terminem
-    python3 /tmp/jenkins_ctl.py resume       # volta a aceitar builds
+Runs INSIDE the Jenkins container (standard library only):
+    python3 /tmp/jenkins_ctl.py quiet-down   # starts no new builds; waits for running builds to finish
+    python3 /tmp/jenkins_ctl.py resume       # accepts builds again
     python3 /tmp/jenkins_ctl.py status
 
-Codigos de saida: 0 = OK, 1 = ainda ha builds em curso ao fim do tempo limite, 2 = erro de ligacao.
+Exit codes: 0 = OK, 1 = builds still running at the time limit, 2 = connection error.
 """
 
 import base64
@@ -45,29 +45,29 @@ def main():
     try:
         if action == "quiet-down":
             call("/quietDown", "POST")
-            print("Jenkins em pausa: nao vai arrancar builds novos.")
+            print("Jenkins paused: it will not start new builds.")
             deadline = time.time() + 600
             while True:
                 busy, names = running_builds()
                 if busy == 0:
-                    print("Nenhum build em curso: pode atualizar as ferramentas.")
+                    print("No builds running: the tools can be updated.")
                     return 0
                 if time.time() > deadline:
-                    print(f"Ainda ha {busy} build(s) em curso: {', '.join(names)}")
-                    print("Se um build esta a espera do go/no-go, aprova-o ou cancela-o no Jenkins e repete.")
+                    print(f"Still {busy} build(s) running: {', '.join(names)}")
+                    print("If a build is waiting for the go/no-go, approve or abort it in Jenkins and try again.")
                     return 1
-                print(f"A aguardar que terminem {busy} build(s): {', '.join(names)}")
+                print(f"Waiting for {busy} build(s) to finish: {', '.join(names)}")
                 time.sleep(10)
         elif action == "resume":
             call("/cancelQuietDown", "POST")
-            print("Jenkins volta a aceitar builds.")
+            print("Jenkins accepts builds again.")
         else:
             info = call("/api/json?tree=quietingDown")
             busy, names = running_builds()
-            print(f"Em pausa: {info.get('quietingDown')} - builds em curso: {busy} {names}")
+            print(f"Paused: {info.get('quietingDown')} - running builds: {busy} {names}")
         return 0
     except OSError as exc:
-        print(f"Erro a falar com o Jenkins: {exc}")
+        print(f"Error talking to Jenkins: {exc}")
         return 2
 
 

@@ -1,6 +1,6 @@
-# Configuração do Jenkins como código (plugin Configuration as Code)
+# Jenkins configuration as code (Configuration as Code plugin)
 jenkins:
-  systemMessage: "QA Lab · Jenkins do laboratório · pipeline Build → QA → UAT → go/no-go"
+  systemMessage: "QA Lab · lab Jenkins · pipeline Build → QA → UAT → go/no-go"
   numExecutors: 2
   mode: NORMAL
   securityRealm:
@@ -16,7 +16,7 @@ jenkins:
 
 appearance:
   themeManager:
-    disableUserThemes: true     # tema escuro para todos os utilizadores
+    disableUserThemes: true     # dark theme for every user
     theme: "dark"
 
 unclassified:
@@ -26,7 +26,7 @@ unclassified:
 jobs:
   - script: |
       pipelineJob('qa-lab-pipeline') {
-        description('QA Lab: build da imagem, testes, deploy em QA, deploy em UAT, smoke tests e aprovação go/no-go. Verifica o repositório a cada 2 minutos.')
+        description('QA Lab: image build, tests, deploy to QA, deploy to UAT, smoke tests and go/no-go approval. Polls the repository every 2 minutes.')
         properties {
           pipelineTriggers {
             triggers {

@@ -1,13 +1,13 @@
 """
-Serviço TRADING do QA Lab (Flask): página da mini bolsa + API REST.
+QA Lab TRADING service (Flask): mini exchange web page + REST API.
 
-Componentes (inspirados na arquitetura pública da Euronext):
-    Order Entry Gateway (app/gateway.py) → Matching Engine (app/matching_engine.py) → Market Data (esta API)
-Integração com o sistema SETTLEMENT (serviço separado, app/settlement_service.py):
-    - cada negócio gera um evento TradeExecuted, gravado na mesma transação (outbox) e publicado no Kafka
-    - a data de negócio, as instruções e o fecho do dia são do Settlement: esta API reencaminha esses pedidos
+Components (inspired by Euronext's public architecture):
+    Order Entry Gateway (app/gateway.py) → Matching Engine (app/matching_engine.py) → Market Data (this API)
+Integration with the SETTLEMENT system (separate service, app/settlement_service.py):
+    - each trade creates a TradeExecuted event, stored in the same transaction (outbox) and published to Kafka
+    - the business date, the instructions and the end of day belong to Settlement: this API forwards those requests
 
-Ambiente: ENV_NAME (QA, UAT ou LOCAL) e APP_VERSION aparecem na página e em /health.
+Environment: ENV_NAME (QA, UAT or LOCAL) and APP_VERSION are shown on the page and in /health.
 """
 
 import json
@@ -39,7 +39,7 @@ REFERENCE_PRICES = {"EDP": 4.50, "GALP": 15.20, "BCP": 0.65, "NOS": 3.80}
 log = get_logger("API")
 outbox_log = get_logger("OUTBOX")
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), "static"))
-lock = threading.RLock()           # uma operação de negócio de cada vez (simples e previsível)
+lock = threading.RLock()           # one business operation at a time (simple and predictable)
 
 database = Database()
 bus = busmod.get_bus()
@@ -54,13 +54,13 @@ def generation():
 
 
 def current_business_date():
-    """A data de negócio pertence ao Settlement. Se não responder, usa a última conhecida (e regista um aviso)."""
+    """The business date belongs to Settlement. If it does not respond, use the last known one (and log a warning)."""
     try:
         status, body = settlement_api.request("GET", "/api/business-date", timeout=2)
         if status == 200:
             _last_business_date["value"] = body["business_date"]
     except ServiceUnavailable as exc:
-        log.warning("%s; a usar a última data de negócio conhecida (%s)", exc, _last_business_date["value"])
+        log.warning("%s; using the last known business date (%s)", exc, _last_business_date["value"])
     return _last_business_date["value"]
 
 
@@ -75,7 +75,7 @@ def _build_components(restore=True):
 _build_components()
 
 
-# ---------------------------------------------------------------------- outbox → barramento (Kafka)
+# ---------------------------------------------------------------------- outbox → bus (Kafka)
 def trade_event(trade):
     return {
         "event_id": uuid.uuid4().hex,
@@ -90,7 +90,7 @@ def trade_event(trade):
 
 
 def publish_pending():
-    """Publica os eventos pendentes da outbox, por ordem. Pára no primeiro erro (mantém a ordem dos eventos)."""
+    """Publishes pending outbox events, in order. Stops at the first error (keeps event order)."""
     published = 0
     with lock:
         pending = database.pending_outbox()
@@ -98,18 +98,18 @@ def publish_pending():
     for ev in pending:
         try:
             bus.publish(ev["topic"], ev["event_key"], json.loads(ev["payload"]))
-        except Exception as exc:  # noqa: BLE001 - Kafka/consumidor indisponível: fica pendente
+        except Exception as exc:  # noqa: BLE001 - Kafka/consumer unavailable: stays pending
             with lock:
                 database.mark_failed(ev["event_id"], f"{exc.__class__.__name__}: {exc}")
                 database.commit()
-            outbox_log.warning("Evento %s (%s) não publicado: %s. Nova tentativa em breve.",
+            outbox_log.warning("Event %s (%s) not published: %s. Retrying shortly.",
                                ev["event_id"], ev["event_key"], exc)
             break
         with lock:
             database.mark_published(ev["event_id"])
             database.commit()
         published += 1
-        outbox_log.info("Evento %s publicado em %s (negócio %s)", ev["event_id"], ev["topic"], ev["event_key"])
+        outbox_log.info("Event %s published to %s (trade %s)", ev["event_id"], ev["topic"], ev["event_key"])
     return published
 
 
@@ -118,7 +118,7 @@ def _publisher_loop():
         try:
             publish_pending()
         except Exception:  # noqa: BLE001
-            outbox_log.exception("Erro no publicador da outbox")
+            outbox_log.exception("Error in the outbox publisher")
         time.sleep(0.5)
 
 
@@ -126,7 +126,7 @@ if bus.name != "memory":
     threading.Thread(target=_publisher_loop, daemon=True, name="outbox-publisher").start()
 
 
-# ---------------------------------------------------------------------- utilitários
+# ---------------------------------------------------------------------- utilities
 def _json():
     return request.get_json(silent=True) or request.form or {}
 
@@ -139,7 +139,7 @@ def _parse_order(data):
         raw_price = data.get("price")
         price = None if raw_price in (None, "", "MKT") else round(float(raw_price), 6)
     except (KeyError, TypeError, ValueError) as exc:
-        abort(400, description=f"Pedido inválido: {exc}")
+        abort(400, description=f"Invalid request: {exc}")
     return symbol, side, qty, price
 
 
@@ -154,14 +154,14 @@ def unexpected_error(err):
     if isinstance(err, HTTPException):
         return err
     try:
-        database.rollback()            # nunca deixar uma transação abortada pendurada
+        database.rollback()            # never leave an aborted transaction open
     except Exception:  # noqa: BLE001
         pass
-    log.exception("Erro inesperado: %s", err)
-    return jsonify(error=f"Erro interno: {err}"), 500
+    log.exception("Unexpected error: %s", err)
+    return jsonify(error=f"Internal error: {err}"), 500
 
 
-# ---------------------------------------------------------------------- páginas
+# ---------------------------------------------------------------------- pages
 @app.get("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
@@ -188,7 +188,7 @@ def docs_index():
 
 @app.get("/api/docs")
 def docs_list():
-    """Índice da documentação: título (primeira linha) de cada ficheiro .md, por pasta."""
+    """Documentation index: title (first line) of each .md file, by folder."""
     items = []
     for folder, _, files in os.walk(DOCS_DIR):
         for f in sorted(files):
@@ -218,11 +218,11 @@ def docs_raw(name):
 @app.get("/reports/<path:name>")
 def reports(name="index.html"):
     if not os.path.isfile(os.path.join(REPORTS_DIR, name)):
-        return jsonify(error="Ainda não há relatórios. Corre scripts/run_tests.sh"), 404
+        return jsonify(error="No reports yet. Run scripts/run_tests.sh"), 404
     return send_from_directory(REPORTS_DIR, name)
 
 
-# ---------------------------------------------------------------------- estado do serviço
+# ---------------------------------------------------------------------- service status
 @app.get("/health")
 def health():
     with lock:
@@ -262,9 +262,9 @@ def submit_order():
             database.save_trade(t)
             event = trade_event(t)
             database.insert_outbox(event["event_id"], busmod.TOPIC_TRADES, t.trade_id, json.dumps(event))
-        database.commit()                      # negócio e evento gravados juntos (ou nenhum)
+        database.commit()                      # trade and event stored together (or neither)
     if new_trades and bus.name == "memory":
-        publish_pending()                      # em testes: entrega imediata
+        publish_pending()                      # in tests: immediate delivery
     status = 422 if order.status == "REJECTED" else 201
     return jsonify(order=order.to_dict(), trades=[t.to_dict() for t in new_trades]), status
 
@@ -277,7 +277,7 @@ def cancel_order(order_id):
             database.save_order(engine.orders[order_id])
             database.commit()
     if not ok:
-        return jsonify(error=f"Não foi possível cancelar {order_id}"), 409
+        return jsonify(error=f"Could not cancel {order_id}"), 409
     return jsonify(order=engine.orders[order_id].to_dict())
 
 
@@ -293,7 +293,7 @@ def list_orders():
 def get_order(order_id):
     order = engine.orders.get(order_id)
     if order is None:
-        return jsonify(error="Ordem não encontrada"), 404
+        return jsonify(error="Order not found"), 404
     return jsonify(order.to_dict())
 
 
@@ -312,7 +312,7 @@ def trades():
     return jsonify(list(reversed(items)))
 
 
-# ---------------------------------------------------------------------- Settlement (reencaminhado ao serviço)
+# ---------------------------------------------------------------------- Settlement (forwarded to the service)
 def _forward(method, path, body=None):
     try:
         status, data = settlement_api.request(method, path, body)
@@ -348,10 +348,10 @@ def end_of_day():
     return _forward("POST", "/api/eod")
 
 
-# ---------------------------------------------------------------------- integração entre sistemas
+# ---------------------------------------------------------------------- integration between systems
 def _test_only():
     if ENV_NAME == "UAT":
-        abort(403, description="Operação de teste não disponível em UAT")
+        abort(403, description="Test operation not available in UAT")
 
 
 @app.get("/api/integration")
@@ -362,17 +362,17 @@ def integration_status():
     try:
         _, sim = t2s_api.request("GET", "/api/mode", timeout=2)
     except ServiceUnavailable:
-        sim = {"mode": "sem resposta"}
+        sim = {"mode": "no response"}
     try:
         _, st = settlement_api.request("GET", "/health", timeout=2)
     except ServiceUnavailable:
-        st = {"status": "sem resposta"}
+        st = {"status": "no response"}
     return jsonify(bus=bus.name, bus_ok=bus.ping(), outbox=outbox, settlement=st, t2s=sim, generation=generation())
 
 
 @app.get("/api/reconciliation")
 def reconciliation():
-    """Reconciliação ENTRE SISTEMAS: negócios do Trading vs. instruções do Settlement."""
+    """CROSS-SYSTEM reconciliation: Trading trades vs. Settlement instructions."""
     with lock:
         trades_ = {t.trade_id: t for t in engine.trades}
     try:
@@ -396,25 +396,25 @@ def reconciliation():
 
 @app.post("/api/integration/replay/<trade_id>")
 def replay_event(trade_id):
-    """Volta a publicar o evento de um negócio (simula a entrega duplicada do Kafka). Só fora de UAT."""
+    """Publishes a trade's event again (simulates Kafka duplicate delivery). Not in UAT."""
     _test_only()
     with lock:
         ev = database.outbox_event_for_trade(trade_id)
         database.rollback()
     if not ev:
-        return jsonify(error=f"Sem evento para o negócio {trade_id}"), 404
+        return jsonify(error=f"No event for trade {trade_id}"), 404
     bus.publish(busmod.TOPIC_TRADES, trade_id, json.loads(ev["payload"]))
-    log.warning("Evento do negócio %s publicado OUTRA VEZ (teste de idempotência)", trade_id)
+    log.warning("Event for trade %s published AGAIN (idempotency test)", trade_id)
     return jsonify(replayed=trade_id, event_id=ev["event_id"])
 
 
 @app.post("/api/integration/publish-raw")
 def publish_raw():
-    """Publica uma mensagem arbitrária no tópico (teste de contrato e da fila de erros). Só fora de UAT."""
+    """Publishes an arbitrary message to the topic (contract and dead letter queue test). Not in UAT."""
     _test_only()
     payload = _json()
-    bus.publish(busmod.TOPIC_TRADES, str(payload.get("event_id", "teste")), payload)
-    log.warning("Mensagem de teste publicada em %s (válida pelo contrato: %s)", busmod.TOPIC_TRADES,
+    bus.publish(busmod.TOPIC_TRADES, str(payload.get("event_id", "test")), payload)
+    log.warning("Test message published to %s (valid against the contract: %s)", busmod.TOPIC_TRADES,
                 not validate_trade_executed(payload))
     return jsonify(published=True, contract_errors=validate_trade_executed(payload))
 
@@ -429,10 +429,10 @@ def t2s_mode():
     return jsonify(body), status
 
 
-# ---------------------------------------------------------------------- administração
+# ---------------------------------------------------------------------- administration
 @app.post("/api/reset")
 def reset():
-    """Reinicia o ambiente inteiro: Trading, Settlement e simulador T2S (nova geração de eventos)."""
+    """Resets the whole environment: Trading, Settlement and the T2S simulator (new event generation)."""
     with lock:
         database.reset()
         database.execute("DELETE FROM outbox_events")
@@ -446,7 +446,7 @@ def reset():
             client.request("POST", "/api/reset", body)
         except ServiceUnavailable as exc:
             errors.append(str(exc))
-    log.info("Ambiente %s reiniciado (geração %d)%s", ENV_NAME, gen, f"; avisos: {errors}" if errors else "")
+    log.info("Environment %s reset (generation %d)%s", ENV_NAME, gen, f"; warnings: {errors}" if errors else "")
     return jsonify(status="reset", generation=gen, warnings=errors)
 
 
@@ -458,14 +458,14 @@ def query():
     try:
         with lock:
             cols, rows = database.run_query(str(data.get("sql", "")))
-    except Exception as exc:  # noqa: BLE001 - devolver o erro SQL ao utilizador
+    except Exception as exc:  # noqa: BLE001 - return the SQL error to the user
         return jsonify(error=str(exc)), 400
     return jsonify(columns=cols, rows=rows)
 
 
 def main():
     port = int(os.environ.get("PORT", "8000"))
-    log.info("Trading %s versão %s a arrancar na porta %d (base de dados: %s, barramento: %s, modo desafio: %s)",
+    log.info("Trading %s version %s starting on port %d (database: %s, bus: %s, challenge mode: %s)",
              ENV_NAME, APP_VERSION, port, database.engine_name, bus.name, challenge_mode())
     app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
 

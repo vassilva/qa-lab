@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Corre os testes automáticos e guarda os relatórios (JUnit XML) em reports/
+# Runs the automated tests and stores the reports (JUnit XML) in reports/
 #
-# Uso: bash scripts/run_tests.sh <unit|bdd>
-#   unit  testes pytest dos componentes, isolados (standalone), com base de dados temporária
-#   bdd   cenários BDD (behave) contra o ambiente em execução
+# Usage: bash scripts/run_tests.sh <unit|bdd>
+#   unit  pytest tests of the components, in isolation (standalone), with a temporary database
+#   bdd   BDD scenarios (behave) against the running environment
 #
-# Variáveis opcionais:
-#   BASE_URL   ambiente a testar (por omissão http://localhost:8000)
-#   BDD_TAGS   filtro de cenários, ex.: "@critico" ou "@critico or @alto" (por omissão: todos)
+# Optional variables:
+#   BASE_URL   environment under test (default http://localhost:8000)
+#   BDD_TAGS   scenario filter, e.g. "@critical" or "@critical or @high" (default: all)
 set -uo pipefail
 
 SUITE="${1:-unit}"
@@ -28,13 +28,13 @@ case "$SUITE" in
     rm -rf reports/behave
     args=(--junit --junit-directory reports/behave --format progress)
     if [[ -n "${BDD_TAGS:-}" ]]; then
-      echo "Filtro de cenários: $BDD_TAGS"
+      echo "Scenario filter: $BDD_TAGS"
       args+=(--tags "$BDD_TAGS")
     fi
     behave "${args[@]}" features || status=$?
     ;;
   *)
-    echo "Uso: $0 <unit|bdd>" >&2
+    echo "Usage: $0 <unit|bdd>" >&2
     exit 2
     ;;
 esac
