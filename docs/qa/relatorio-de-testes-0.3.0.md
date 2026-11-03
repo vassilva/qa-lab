@@ -33,8 +33,8 @@ A única falha do período (build #2) foi de infraestrutura, não do produto (DE
 
 | Estado | Quantidade | Detalhe |
 | --- | ---: | --- |
-| Encontrados no período | 5 reais | DEF-006 a DEF-010 |
-| Fechados | 5 | Correções validadas com reteste e regressão |
+| Encontrados no período | 6 reais | DEF-006 a DEF-011 |
+| Fechados | 6 | Correções validadas com reteste e regressão |
 | Abertos que afetam a versão | 0 | |
 | Defeitos de treino (modo desafio) | 5 | DEF-001 a DEF-005; não existem com o modo desafio desligado |
 
