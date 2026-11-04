@@ -13,7 +13,7 @@ tested end to end through **APIs, databases and Linux servers**, in **QA and UAT
 | --- | --- |
 | **System under test** | 3 Python services (Trading, Settlement, T2S simulator) · Apache Kafka · PostgreSQL · Docker |
 | **Environments** | QA (full automated regression) and UAT (acceptance and go/no-go), same image promoted |
-| **Automation** | 102 pytest tests (86% code coverage) · 33 BDD scenarios covering 21 acceptance criteria · post-deploy smoke |
+| **Automation** | 102 pytest tests (88% code coverage) · 33 BDD scenarios covering 21 acceptance criteria · post-deploy smoke |
 | **Pipeline** | Jenkins: build → component/API tests → QA deploy, smoke, BDD → UAT deploy, smoke → go/no-go |
 | **Quality docs** | Test strategy, risk matrix, manual test cases, traceability matrix, test reports, release checklist |
 | **Defects** | 17 bug reports (`docs/defects/`), found while building and running the lab, each with evidence, root cause and retest |
@@ -103,7 +103,7 @@ Docker Desktop shows three groups: **`qa`**, **`uat`** and **`qa-lab-tools`** (J
 | Test report | `scripts/test_summary.py` | `python3 scripts/test_summary.py reports` → `localhost:8000/reports/` |
 | Traceability | `scripts/traceability.py` | `python3 scripts/traceability.py` |
 
-Today: **102** pytest tests (86% code coverage) and **33** BDD scenarios (21 acceptance criteria, 100% automated).
+Today: **102** pytest tests (88% code coverage) and **33** BDD scenarios (21 acceptance criteria, 100% automated).
 
 The BDD scenarios reset the data, so they **refuse to run in UAT**.
 In Jenkins, **Build with Parameters** lets you choose a `full` or `critical` regression.
