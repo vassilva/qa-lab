@@ -30,10 +30,18 @@ if (-not $ResumeOnly) {
 }
 
 # Jenkins may be restarting: retry for up to 3 minutes
+$restarted = $false
 for ($i = 1; $i -le 36; $i++) {
-    if ((Invoke-JenkinsCtl "resume") -eq 0) {
+    $code = Invoke-JenkinsCtl "resume"
+    if ($code -eq 0) {
         Write-Host "Tools updated. The pipeline accepts builds again." -ForegroundColor Green
         exit 0
+    }
+    if ($code -eq 3 -and -not $restarted) {
+        # DEF-018: a job created by configuration as code on the first start is not loaded until a restart
+        Write-Host "Restarting Jenkins once so it loads the pipeline job (DEF-018)..." -ForegroundColor Yellow
+        docker restart qa-lab-jenkins | Out-Null
+        $restarted = $true
     }
     Start-Sleep -Seconds 5
 }

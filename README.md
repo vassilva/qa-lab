@@ -16,7 +16,7 @@ tested end to end through **APIs, databases and Linux servers**, in **QA and UAT
 | **Automation** | 102 pytest tests (88% code coverage) · 33 BDD scenarios covering 21 acceptance criteria · post-deploy smoke |
 | **Pipeline** | GitHub PR (Actions check, protected main, auto-merge) → Jenkins: build → QA deploy, smoke, BDD → QA approval → UAT deploy, smoke (automatic rollback) |
 | **Quality docs** | Test strategy, risk matrix, manual test cases, traceability matrix, test reports, release checklist |
-| **Defects** | 17 bug reports (`docs/defects/`), found while building and running the lab, each with evidence, root cause and retest |
+| **Defects** | 18 bug reports (`docs/defects/`), found while building and running the lab, each with evidence, root cause and retest |
 
 ### What it shows
 

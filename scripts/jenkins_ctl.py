@@ -11,7 +11,8 @@ Why the job is disabled instead of using "quiet down" (DEF-014): in quiet down m
 running Pipeline builds ("Pausing (Preparing for shutdown)"), so waiting for them to finish never ends.
 A disabled job starts no new builds (not even from SCM polling) while running builds carry on normally.
 
-Exit codes: 0 = OK, 1 = builds still running at the time limit, 2 = connection error.
+Exit codes: 0 = OK, 1 = builds still running at the time limit, 2 = connection error,
+3 = Jenkins is up but the pipeline job is not loaded (DEF-018: restart Jenkins once).
 """
 
 import base64
@@ -74,7 +75,14 @@ def main():
                 time.sleep(10)
         elif action == "resume":
             call("/cancelQuietDown", "POST")
-            call(JOB + "/api/json?tree=name")         # fails until Jenkins is up and the job exists
+            try:
+                call(JOB + "/api/json?tree=name")
+            except urllib.error.HTTPError as exc:
+                if exc.code == 404:
+                    # DEF-018: Jenkins is up but the job created by configuration as code was not loaded
+                    print(f"Job {JOB} not loaded by Jenkins (DEF-018): a restart is needed.")
+                    return 3
+                raise
             try:
                 call(JOB + "/enable", "POST")
             except urllib.error.HTTPError as exc:
