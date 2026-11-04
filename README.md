@@ -1,11 +1,38 @@
-# QA Lab · Mini stock exchange
+# QA Lab · Post-trade test environment
 
-A Quality Assurance lab that simulates, in a simplified way, the chain of an exchange:
-**order → trading → message (Kafka) → T+2 settlement → external system (T2S)**. The architecture is **inspired**
-by Euronext's public architecture (it is not a replica of its systems).
+A hands-on lab I built to practise the daily work of a **Techno-Functional QA Engineer in capital markets**:
+a mini stock exchange where a trade travels **order → matching → Kafka event → T+2 settlement → T2S (simulated)**,
+tested end to end through **APIs, databases and Linux servers**, in **QA and UAT** environments, with a **Jenkins CI/CD pipeline** and a go/no-go gate.
 
-Each requirement of the QA job description is a feature, and progress is shown on the **/checklist** page
-(✓ green = done, ✕ red = to do).
+> Personal learning project. The architecture is *inspired* by public information about exchange and post-trade systems.
+> It is not affiliated with, nor a copy of, any company's systems. All passwords in this repo are local lab defaults.
+
+### At a glance
+
+| | |
+| --- | --- |
+| **System under test** | 3 Python services (Trading, Settlement, T2S simulator) · Apache Kafka · PostgreSQL · Docker |
+| **Environments** | QA (full automated regression) and UAT (acceptance and go/no-go), same image promoted |
+| **Automation** | 91 pytest tests (86% code coverage) · 33 BDD scenarios covering 21 acceptance criteria · post-deploy smoke |
+| **Pipeline** | Jenkins: build → component/API tests → QA deploy, smoke, BDD → UAT deploy, smoke → go/no-go |
+| **Quality docs** | Test strategy, risk matrix, manual test cases, traceability matrix, test reports, release checklist |
+| **Defects** | 16 bug reports (`docs/defects/`), found while building and running the lab, each with evidence, root cause and retest |
+
+### What it shows
+
+| Skill | Where to look |
+| --- | --- |
+| Functional + technical testing of a business flow (settlement, T+2, TARGET2 calendar, recycling) | `features/03_settlement.feature`, `docs/qa/manual-test-cases.md` |
+| API testing and contracts (OpenAPI, JSON Schema) | `contracts/`, `tests/integration/` |
+| Integration testing: Kafka, outbox, idempotency, dead letter queue, file interface | `features/04_integration.feature`, `docs/technical/architecture.md` |
+| SQL data validation and reconciliation across two databases | `db/qa_queries.sql`, `db/qa_queries_settlement.sql` |
+| Linux investigation: logs, files, Kafka CLI | `docs/technical/linux-and-shell.md` |
+| BDD and test automation in Python | `features/`, `tests/`, `docs/qa/automation-guide.md` |
+| Risk-based test strategy and traceability | `docs/qa/test-strategy.md`, `docs/qa/risk-matrix.md`, `docs/qa/traceability-matrix.md` |
+| Clear, reproducible bug reports | `docs/defects/` (e.g. DEF-015: tests started before the Kafka consumer was ready) |
+| CI/CD and release decision | `Jenkinsfile`, `scripts/deploy.sh`, `scripts/smoke.sh`, `docs/qa/release-checklist.md` |
+
+**Quick start:** see [Getting started](#getting-started-windows-powershell-in-vs-code). Progress of each skill is also shown on the lab's **/checklist** page.
 
 ## Architecture
 
