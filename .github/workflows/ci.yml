@@ -1,0 +1,34 @@
+# GitHub Actions · build check on every push to a branch (not main).
+# Same command as the Jenkins stage "Component and API tests": pytest with SQLite and the in-memory bus,
+# no Docker, no Kafka (~1 min). The result shows on the pull request as the check "Component and API tests";
+# main is protected and only accepts a merge when that check is green. The pull request itself runs no extra
+# tests. After the merge, Jenkins (polling GitHub) deploys to QA, runs smoke + BDD regression, asks for the
+# approval and deploys to UAT.
+name: CI
+
+on:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Component and API tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Build check · component and API tests
+        run: bash scripts/run_tests.sh unit
+      - name: Publish test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: reports/

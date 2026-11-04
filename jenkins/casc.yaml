@@ -1,6 +1,6 @@
 # Jenkins configuration as code (Configuration as Code plugin)
 jenkins:
-  systemMessage: "QA Lab · lab Jenkins · pipeline Build → QA → UAT → go/no-go"
+  systemMessage: "QA Lab · lab Jenkins · GitHub PR → merge → Build → QA → approval → UAT (rollback on failed smoke)"
   numExecutors: 2
   mode: NORMAL
   securityRealm:
@@ -26,7 +26,7 @@ unclassified:
 jobs:
   - script: |
       pipelineJob('qa-lab-pipeline') {
-        description('QA Lab: image build, tests, deploy to QA, deploy to UAT, smoke tests and go/no-go approval. Polls the repository every 2 minutes.')
+        description('QA Lab: runs after every merge to main on GitHub. Image build, tests, deploy to QA, smoke and BDD regression, QA approval, deploy to UAT, smoke (automatic rollback if it fails). Polls GitHub every 2 minutes.')
         properties {
           pipelineTriggers {
             triggers {
@@ -41,7 +41,7 @@ jobs:
             scm {
               git {
                 remote {
-                  url('file:///repo/qa-lab')
+                  url('https://github.com/vassilva/qa-lab.git')   // GitHub: changes arrive by pull request (local alternative: file:///repo/qa-lab)
                 }
                 branch('*/main')
               }

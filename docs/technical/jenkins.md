@@ -15,9 +15,16 @@ To update it safely (without killing a running build): `scripts\update_tools.ps1
 ## Pipeline
 
 ```
-Prepare → Build image → Component and API tests
-  → QA · Deploy → QA · Smoke → QA · BDD regression
-  → UAT · Deploy → UAT · Smoke → UAT · Test summary → UAT · Go/No-go
+push of a branch ─► GitHub Actions: build + component/API tests ──✕ red: the PR cannot be merged
+      │ green
+      ▼
+pull request (no extra tests, review) ─► auto-merge to main
+      ▼
+Jenkins (polls GitHub main): Prepare → Build image → Component and API tests
+  → QA · Deploy → QA · Smoke → QA · BDD regression → Test summary
+  → ⏸ Approval · Deploy to UAT?  (QA decision)
+  → UAT · Deploy → UAT · Smoke ──✕ fails: pipeline stops + UAT rolled back to the previous version
+  → Release
 ```
 
 | Concept | Where it is in the Jenkinsfile |
@@ -25,9 +32,11 @@ Prepare → Build image → Component and API tests
 | Quality gate | Any failure in "QA · …" stops the pipeline: the version does not reach UAT |
 | Artifact promotion | The image `qa-lab:<version>-<commit>` is built once and promoted |
 | Parameters | `REGRESSION` (full/critical) and `CHALLENGE_MODE` (hidden defects in QA) |
-| Triggers | Commit (pollSCM every 2 min), manual, and `cron('H 2 * * 1-5')`: nightly regression in QA |
+| Triggers | Merge to `main` on GitHub (pollSCM every 2 min), manual, and `cron('H 2 * * 1-5')`: nightly regression in QA |
 | Conditional execution | `when { not { triggeredBy 'TimerTrigger' } }`: the nightly regression does not go to UAT |
-| Manual approval | `input` stage "UAT · Go/No-go", with a 1-day timeout |
+| Manual approval | `input` stage "Approval · Deploy to UAT?" after the QA regression, with a 1-day timeout (no answer = no UAT deploy) |
+| Automatic rollback | `post { failure }` of "UAT · Smoke": redeploys the version UAT had before (read with `docker inspect`) and smoke-tests it |
+| Pull request check | Not in Jenkins: GitHub Actions (`.github/workflows/ci.yml`) runs the component and API tests on every branch push |
 | Reports | `junit` (Tests tab and trend), `archiveArtifacts` (HTML report, coverage) |
 | Post actions | `post { always / success / failure }` |
 | No parallel runs | `disableConcurrentBuilds()`: two deployments never overlap |
