@@ -119,9 +119,13 @@ class Database:
                 if version in applied:
                     continue
                 with open(path, encoding="utf-8") as f:
-                    lines = [ln for ln in f.read().splitlines() if not ln.strip().startswith("--")]
-                for statement in [s.strip() for s in "\n".join(lines).split(";") if s.strip()]:
-                    self.execute(statement)
+                    text = f.read()
+                lines = [ln for ln in text.splitlines() if not ln.strip().startswith("--")]
+                # "-- postgres-only": the change is already in the schema file for SQLite (fresh test databases),
+                # and SQLite cannot ALTER a column or a constraint, so the migration is only recorded there.
+                if self.is_postgres or "-- postgres-only" not in text:
+                    for statement in [s.strip() for s in "\n".join(lines).split(";") if s.strip()]:
+                        self.execute(statement)
                 self.execute("INSERT INTO schema_migrations (version) VALUES (?)", (version,))
                 self.commit()
                 done.append(version)

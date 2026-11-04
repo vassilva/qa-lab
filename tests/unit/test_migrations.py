@@ -23,7 +23,7 @@ def test_upgrade_from_v04_drops_the_orphan_settlement_table(tmp_path):
     assert "settlement_instructions" not in db.actual_tables()
     assert db.schema_check()["schema_ok"]
     assert [r["version"] for r in db._rows("SELECT version FROM schema_migrations")] == \
-        ["001_drop_legacy_settlement_instructions"]
+        ["001_drop_legacy_settlement_instructions", "002_allow_invalid_side_on_rejected_orders"]
 
 
 def test_migrations_run_once_and_survive_reset(tmp_path):
@@ -38,3 +38,17 @@ def test_schema_check_reports_a_leftover_table(tmp_path):
     db.execute("CREATE TABLE old_report (id INTEGER)")
     db.commit()
     assert db.schema_check() == {"schema_ok": False, "unexpected_tables": ["old_report"], "missing_tables": []}
+
+
+def test_postgres_only_migration_is_recorded_but_not_run_on_sqlite(tmp_path):
+    """DEF-017: SQLite cannot ALTER a constraint; its fresh schema already has the change."""
+    db = Database(url="", sqlite_path=str(tmp_path / "s.db"))
+    versions = [r["version"] for r in db._rows("SELECT version FROM schema_migrations")]
+    assert "002_allow_invalid_side_on_rejected_orders" in versions
+    db.execute("INSERT INTO orders (order_id, symbol, side, qty, price, remaining, status, reject_reason) "
+               "VALUES ('O1', 'EDP', '', 1, 4.5, 1, 'REJECTED', 'Invalid side')")
+    db.commit()
+    import pytest
+    with pytest.raises(Exception):      # an accepted order must still be BUY or SELL
+        db.execute("INSERT INTO orders (order_id, symbol, side, qty, price, remaining, status) "
+                   "VALUES ('O2', 'EDP', 'HOLD', 1, 4.5, 1, 'NEW')")

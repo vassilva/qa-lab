@@ -112,14 +112,14 @@
         {
           "id": "2.1",
           "requirement": "Execute manual and automated tests to validate functional behaviour",
-          "evidence": "10 manual test cases, exploratory charter and execution log + 124 automated tests (91 pytest + 33 BDD)",
+          "evidence": "10 manual test cases, exploratory charter and execution log + 135 automated tests (102 pytest + 33 BDD)",
           "link": "/docs/qa/manual-test-cases.md",
           "done": true
         },
         {
           "id": "2.2",
           "requirement": "Reproduce, analyse, document, and track defects",
-          "evidence": "16 bug reports (5 training defects in challenge mode, 11 real) with steps and API, log and SQL evidence; logged in Jira in item F1",
+          "evidence": "17 bug reports (5 training defects in challenge mode, 12 real) with steps and API, log and SQL evidence; logged in Jira in item F1",
           "link": "/docs/defects/README.md",
           "done": true
         },
@@ -153,7 +153,7 @@
         {
           "id": "3.1",
           "requirement": "Contribute to test automation coverage and its continuous improvement",
-          "evidence": "91 pytest tests (component, API, integration between services, OpenAPI contracts) + 33 BDD scenarios; 100% of the 21 criteria automated",
+          "evidence": "102 pytest tests (component, API, integration between services, OpenAPI contracts) + 33 BDD scenarios; 100% of the 21 criteria automated",
           "link": "/docs/qa/automation-plan.md",
           "done": true
         },

@@ -4,14 +4,15 @@
 CREATE TABLE IF NOT EXISTS orders (
     order_id      VARCHAR(20)   PRIMARY KEY,
     symbol        VARCHAR(10)   NOT NULL,
-    side          VARCHAR(4)    NOT NULL CHECK (side IN ('BUY', 'SELL')),
+    side          VARCHAR(10)   NOT NULL,                -- BUY or SELL (a REJECTED order keeps what was sent, DEF-017)
     qty           INTEGER       NOT NULL,
     price         NUMERIC(12,4),               -- NULL = market order
     remaining     INTEGER       NOT NULL,
     status        VARCHAR(20)   NOT NULL,
     reject_reason VARCHAR(100),
     created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT orders_side_check CHECK (side IN ('BUY', 'SELL') OR status = 'REJECTED')
 );
 
 CREATE TABLE IF NOT EXISTS trades (

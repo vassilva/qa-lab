@@ -131,6 +131,11 @@ def _json():
     return request.get_json(silent=True) or request.form or {}
 
 
+MAX_FIELD_LEN = 10              # orders.symbol / orders.side columns
+MAX_INT = 2_147_483_647         # orders.qty INTEGER
+MAX_PRICE = 100_000_000         # orders.price NUMERIC(12,4)
+
+
 def _parse_order(data):
     try:
         symbol = str(data["symbol"]).upper().strip()
@@ -140,6 +145,12 @@ def _parse_order(data):
         price = None if raw_price in (None, "", "MKT") else round(float(raw_price), 6)
     except (KeyError, TypeError, ValueError) as exc:
         abort(400, description=f"Invalid request: {exc}")
+    # Request format limits (DEF-017): values that cannot even be stored are a malformed request (400).
+    # Business rules (side BUY/SELL, known symbol, quantity, price bands) stay in the gateway (422, order REJECTED).
+    if len(symbol) > MAX_FIELD_LEN or len(side) > MAX_FIELD_LEN:
+        abort(400, description=f"Invalid request: symbol and side have at most {MAX_FIELD_LEN} characters")
+    if abs(qty) > MAX_INT or (price is not None and abs(price) >= MAX_PRICE):
+        abort(400, description="Invalid request: quantity or price out of range")
     return symbol, side, qty, price
 
 
@@ -157,8 +168,10 @@ def unexpected_error(err):
         database.rollback()            # never leave an aborted transaction open
     except Exception:  # noqa: BLE001
         pass
-    log.exception("Unexpected error: %s", err)
-    return jsonify(error=f"Internal error: {err}"), 500
+    # DEF-017: the details (SQL, tables, data) go to the server log only, never to the client.
+    error_id = uuid.uuid4().hex[:12]
+    log.exception("Unexpected error [error_id=%s]: %s", error_id, err)
+    return jsonify(error="Internal error", error_id=error_id), 500
 
 
 # ---------------------------------------------------------------------- pages
