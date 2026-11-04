@@ -119,7 +119,7 @@
         {
           "id": "2.2",
           "requirement": "Reproduce, analyse, document, and track defects",
-          "evidence": "17 bug reports (5 training defects in challenge mode, 12 real) with steps and API, log and SQL evidence; logged in Jira in item F1",
+          "evidence": "18 bug reports (5 training defects in challenge mode, 13 real) with steps and API, log and SQL evidence; logged in Jira in item F1",
           "link": "/docs/defects/README.md",
           "done": true
         },

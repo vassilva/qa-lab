@@ -72,7 +72,8 @@ New → In analysis → Confirmed → In progress → Fixed → In retest → Cl
 | [DEF-015](DEF-015.md) | BDD starts before the Settlement Kafka consumer is ready after a redeploy (intermittent failure) | Integration / Deployment | High | P1 | Closed |
 | [DEF-016](DEF-016.md) | Orphan settlement_instructions table left in the Trading database after the Settlement split | Database / Deployment | Low | P3 | Closed |
 | [DEF-017](DEF-017.md) | Order with an invalid side returns HTTP 500, exposes database details and is not persisted | Order Entry Gateway / Database | Medium | P2 | Closed |
+| [DEF-018](DEF-018.md) | New multibranch job "qa-lab" not loaded after the Jenkins update (created on disk, missing in Jenkins) | Environment / Pipeline tooling | High | P1 | Fixed (in retest) |
 
 DEF-001 to DEF-005 only exist with **challenge mode** on (Jenkins → Build with Parameters → `CHALLENGE_MODE`).
 They are training defects: the "fixed version" is the same image with challenge mode off.
-DEF-006 to DEF-017 are real defects found while building the lab.
+DEF-006 to DEF-018 are real defects found while building the lab.
