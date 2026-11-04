@@ -103,7 +103,8 @@ reproducible, whatever day they run on.
 **Exit from UAT (go/no-go)**
 - The UAT smoke test passed and confirms the same version tested in QA.
 - Release checklist (`docs/qa/release-checklist.md`) completed.
-- Approval recorded in Jenkins ("UAT · Go/No-go" stage).
+- Approval recorded in Jenkins ("Approval · Deploy to UAT?" stage, given after the QA regression).
+- A failed UAT smoke stops the pipeline and rolls UAT back to the previous version (no broken UAT).
 
 ## 7. Defects and reporting
 

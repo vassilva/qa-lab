@@ -14,7 +14,7 @@ tested end to end through **APIs, databases and Linux servers**, in **QA and UAT
 | **System under test** | 3 Python services (Trading, Settlement, T2S simulator) · Apache Kafka · PostgreSQL · Docker |
 | **Environments** | QA (full automated regression) and UAT (acceptance and go/no-go), same image promoted |
 | **Automation** | 102 pytest tests (88% code coverage) · 33 BDD scenarios covering 21 acceptance criteria · post-deploy smoke |
-| **Pipeline** | Jenkins: build → component/API tests → QA deploy, smoke, BDD → UAT deploy, smoke → go/no-go |
+| **Pipeline** | GitHub PR (Actions check, protected main, auto-merge) → Jenkins: build → QA deploy, smoke, BDD → QA approval → UAT deploy, smoke (automatic rollback) |
 | **Quality docs** | Test strategy, risk matrix, manual test cases, traceability matrix, test reports, release checklist |
 | **Defects** | 17 bug reports (`docs/defects/`), found while building and running the lab, each with evidence, root cause and retest |
 
@@ -77,13 +77,23 @@ Databases: user `qa`, password `qa`, databases `qa_lab` (Trading) and `settlemen
 ## Pipeline (Jenkinsfile)
 
 ```
-Prepare → Build image → Component and API tests
-  → QA · Deploy → QA · Smoke → QA · BDD regression
-  → UAT · Deploy → UAT · Smoke → UAT · Test summary → UAT · Go/No-go
+push of a branch ─┬─► GitHub Actions: component/API tests ──✕ red: the PR cannot be merged (gate on GitHub)
+                  └─► Jenkins job qa-lab/<branch>: Build image → Component and API tests (no deploy)
+      │ green
+      ▼
+pull request (no extra tests, review) ─► auto-merge to main
+      ▼
+Jenkins job qa-lab/main: Prepare → Build image → Component and API tests
+  → QA · Deploy → QA · Smoke → QA · BDD regression → Test summary
+  → ⏸ Approval · Deploy to UAT?  (QA decision)
+  → UAT · Deploy → UAT · Smoke ──✕ fails: pipeline stops + UAT rolled back to the previous version
+  → Release
 ```
 
 The image is built **once** (`qa-lab:<version>-<commit>`) and the same image is promoted from QA to UAT.
-Jenkins polls the repository every 2 minutes: every `git commit` triggers the pipeline. There is also a nightly
+Changes reach `main` only through **pull requests** on GitHub (`main` is protected, see `docs/technical/git.md`).
+Jenkins is a **multibranch** job (`qa-lab`) that scans GitHub every 2 minutes: every push to a branch runs
+build + component/API tests, and every merge to `main` runs the full pipeline. There is also a nightly
 regression in QA (weekdays, ~02:00) that is not promoted to UAT. Parameters: `REGRESSION` (full/critical) and `CHALLENGE_MODE`.
 
 Docker Desktop shows three groups: **`qa`**, **`uat`** and **`qa-lab-tools`** (Jenkins + Adminer).
@@ -130,9 +140,9 @@ powershell -ExecutionPolicy Bypass -File scripts\update_tools.ps1 -PauseOnly   #
 powershell -ExecutionPolicy Bypass -File scripts\update_tools.ps1              # 3. rebuild, restart Jenkins and resume the pipeline
 ```
 
-Then open http://localhost:8090, sign in with `admin` / `admin`, open **qa-lab-pipeline** and click
-**Build Now**. The pipeline builds the image and creates the QA and UAT environments. At the end it waits for your
-approval (go/no-go).
+Then open http://localhost:8090, sign in with `admin` / `admin`, open **qa-lab → main** and click
+**Build Now**. The pipeline builds the image and creates the QA environment, then waits for your approval
+("Deploy to UAT?") before creating UAT.
 
 Useful commands:
 

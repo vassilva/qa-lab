@@ -42,10 +42,40 @@ git blame features/environment.py   # who changed each line and in which commit
 **merge vs. rebase:** `merge` keeps the history as it happened (with a merge commit); `rebase` replays
 the branch's commits on top of `main`, making it linear. Rule: never rebase commits that are already shared.
 
-## Publish on GitHub (optional)
+## GitHub workflow · pull requests
 
-1. Create an empty repository on GitHub (for example, `qa-lab`).
-2. `git remote add origin https://github.com/<user>/qa-lab.git`
-3. `git push -u origin main --tags` (and any branches you want to show).
+Repository: https://github.com/vassilva/qa-lab. **`main` is protected**: nobody pushes to it directly, not even the
+owner. Every change arrives through a **pull request**.
 
-The lab Jenkins keeps reading the local repository; connecting it to GitHub is an optional next step.
+| # | Step | Command |
+| --- | --- | --- |
+| 1 | Start from an up-to-date `main` | `git switch main` · `git pull` |
+| 2 | Create a branch | `git switch -c fix/DEF-018-short-name` (or `feature/...`, `docs/...`) |
+| 3 | Commit | `git add -A` · `git commit -m "fix(DEF-018): ..."` |
+| 4 | Push the branch → **GitHub Actions** check and **Jenkins** job `qa-lab/<branch>` (build + tests, no deploy) | `git push -u origin fix/DEF-018-short-name` |
+| 5 | Open the pull request (template `.github/pull_request_template.md`) | `gh pr create --base main --fill` |
+| 6 | Turn on auto-merge: GitHub merges as soon as the check is green | `gh pr merge --auto --merge` |
+| 7 | Jenkins job `qa-lab/main` sees the merge → QA → **your approval** → UAT | http://localhost:8090/job/qa-lab/job/main/ |
+| 8 | Bring `main` back locally | `git switch main` · `git pull` |
+
+```
+push ─► GitHub Actions + Jenkins qa-lab/<branch> (build + 102 tests) ─► PR (no extra tests) ─► auto-merge
+      ─► Jenkins qa-lab/main: QA deploy → smoke → BDD regression → ⏸ approval → UAT deploy → smoke (✕ = rollback)
+```
+
+| Gate | Where | If it fails |
+| --- | --- | --- |
+| Build check (component + API tests) | GitHub Actions (required check) and Jenkins branch job, on push | The PR cannot be merged |
+| QA smoke + BDD regression | Jenkins, after the merge | The pipeline stops, the version never reaches UAT |
+| QA approval "Deploy to UAT?" | Jenkins, `input` | No answer in 1 day or Abort = no UAT deploy |
+| UAT smoke | Jenkins | Pipeline stops and UAT is rolled back to the previous version |
+
+One-time setup (GitHub CLI): `powershell -ExecutionPolicy Bypass -File scripts\github\setup_repo.ps1`
+(allows auto-merge, deletes merged branches, protects `main` with `scripts/github/branch-protection.json`).
+A direct `git push` to `main` is then refused with `GH006: Protected branch update failed`.
+
+**In a team** the protection would also require 1 approving review (`required_approving_review_count: 1`);
+in this solo lab it is 0, because GitHub does not let the author approve their own pull request.
+
+**Rollback and the database:** the rollback redeploys the previous image on the current database, so migrations
+must stay backward compatible (add or relax, never remove in the same release: "expand and contract").

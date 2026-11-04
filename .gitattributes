@@ -8,3 +8,5 @@ Jenkinsfile text eol=lf
 *.yaml      text eol=lf
 *.py        text eol=lf
 *.ps1       text eol=crlf
+*.sql       text eol=lf
+*.json      text eol=lf

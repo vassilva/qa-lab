@@ -3,8 +3,8 @@
 Lab Jenkins control (technical fix for DEF-008, corrected by DEF-014).
 
 Runs INSIDE the Jenkins container (standard library only):
-    python3 /tmp/jenkins_ctl.py pause    # disables the pipeline job (no new builds) and waits for running builds to finish
-    python3 /tmp/jenkins_ctl.py resume   # enables the job again (and cancels any quiet down left behind)
+    python3 /tmp/jenkins_ctl.py pause    # disables the pipeline jobs (no new builds) and waits for running builds to finish
+    python3 /tmp/jenkins_ctl.py resume   # enables the multibranch job again (and cancels any quiet down left behind)
     python3 /tmp/jenkins_ctl.py status
 
 Why the job is disabled instead of using "quiet down" (DEF-014): in quiet down mode Jenkins also PAUSES
@@ -19,10 +19,12 @@ import http.cookiejar
 import json
 import sys
 import time
+import urllib.error
 import urllib.request
 
 URL = "http://localhost:8080"
-JOB = "/job/qa-lab-pipeline"
+JOB = "/job/qa-lab"                    # multibranch job (one job per branch, from GitHub)
+LEGACY_JOB = "/job/qa-lab-pipeline"    # single-branch job used until the PR workflow: kept DISABLED (build history)
 AUTH = "Basic " + base64.b64encode(b"admin:admin").decode()
 WAIT_SECONDS = 900
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
@@ -51,8 +53,13 @@ def main():
     try:
         if action in ("pause", "quiet-down"):
             call("/cancelQuietDown", "POST")          # never leave running builds paused (DEF-014)
-            call(JOB + "/disable", "POST")
-            print("Pipeline job disabled: Jenkins will not start new builds.")
+            for job in (JOB, LEGACY_JOB):
+                try:
+                    call(job + "/disable", "POST")
+                    print(f"Job {job} disabled: Jenkins will not start new builds from it.")
+                except urllib.error.HTTPError as exc:
+                    if exc.code not in (404, 405):    # 404 = the job does not exist (yet)
+                        raise
             deadline = time.time() + WAIT_SECONDS
             while True:
                 busy, names = running_builds()
@@ -67,8 +74,13 @@ def main():
                 time.sleep(10)
         elif action == "resume":
             call("/cancelQuietDown", "POST")
-            call(JOB + "/enable", "POST")
-            print("Pipeline job enabled: Jenkins accepts builds again.")
+            call(JOB + "/api/json?tree=name")         # fails until Jenkins is up and the job exists
+            try:
+                call(JOB + "/enable", "POST")
+            except urllib.error.HTTPError as exc:
+                if exc.code not in (404, 405):        # not disabled / nothing to enable
+                    raise
+            print("Job /job/qa-lab enabled: Jenkins accepts builds again.")
         else:
             info = call("/api/json?tree=quietingDown")
             job = call(JOB + "/api/json?tree=buildable")

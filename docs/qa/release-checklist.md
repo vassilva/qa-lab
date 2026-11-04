@@ -1,6 +1,7 @@
 # Release validation checklist (go/no-go)
 
-Fill in for each version before approving the **"UAT · Go/No-go"** stage in Jenkins.
+Fill in for each version before approving the **"Approval · Deploy to UAT?"** stage in Jenkins
+(after the QA smoke and BDD regression). After the approval, a failed UAT smoke stops the pipeline and rolls UAT back.
 
 | Field | Value |
 | --- | --- |

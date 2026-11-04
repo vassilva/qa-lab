@@ -1,6 +1,6 @@
 # Jenkins configuration as code (Configuration as Code plugin)
 jenkins:
-  systemMessage: "QA Lab · lab Jenkins · pipeline Build → QA → UAT → go/no-go"
+  systemMessage: "QA Lab · lab Jenkins · branches: build + tests · main (after PR merge): Build → QA → approval → UAT (rollback on failed smoke)"
   numExecutors: 2
   mode: NORMAL
   securityRealm:
@@ -25,28 +25,31 @@ unclassified:
 
 jobs:
   - script: |
-      pipelineJob('qa-lab-pipeline') {
-        description('QA Lab: image build, tests, deploy to QA, deploy to UAT, smoke tests and go/no-go approval. Polls the repository every 2 minutes.')
-        properties {
-          pipelineTriggers {
-            triggers {
-              pollSCM {
-                scmpoll_spec('H/2 * * * *')
-              }
-            }
+      // Multibranch: one job per Git branch, discovered on GitHub every 2 minutes.
+      //   branches (feature/..., fix/...): build + component and API tests (no deploy)
+      //   main (after the PR merge):       full pipeline QA → approval → UAT (see Jenkinsfile)
+      multibranchPipelineJob('qa-lab') {
+        displayName('qa-lab')
+        description('QA Lab · one job per branch from GitHub (vassilva/qa-lab). Branches: build + component and API tests. main: build, QA deploy, smoke, BDD regression, approval "Deploy to UAT?", UAT deploy and smoke (rollback if it fails).')
+        branchSources {
+          git {
+            id('qa-lab-github')
+            remote('https://github.com/vassilva/qa-lab.git')   // local alternative: file:///repo/qa-lab
           }
         }
-        definition {
-          cpsScm {
-            scm {
-              git {
-                remote {
-                  url('file:///repo/qa-lab')
-                }
-                branch('*/main')
-              }
-            }
+        factory {
+          workflowBranchProjectFactory {
             scriptPath('Jenkinsfile')
+          }
+        }
+        triggers {
+          periodicFolderTrigger {
+            interval('2m')                                      // scan GitHub for new branches and commits
+          }
+        }
+        orphanedItemStrategy {
+          discardOldItems {
+            daysToKeep(7)                                       // jobs of merged/deleted branches are removed
           }
         }
       }
