@@ -77,12 +77,13 @@ Databases: user `qa`, password `qa`, databases `qa_lab` (Trading) and `settlemen
 ## Pipeline (Jenkinsfile)
 
 ```
-push of a branch ─► GitHub Actions: build + component/API tests ──✕ red: the PR cannot be merged
+push of a branch ─┬─► GitHub Actions: component/API tests ──✕ red: the PR cannot be merged (gate on GitHub)
+                  └─► Jenkins job qa-lab/<branch>: Build image → Component and API tests (no deploy)
       │ green
       ▼
 pull request (no extra tests, review) ─► auto-merge to main
       ▼
-Jenkins (polls GitHub main): Prepare → Build image → Component and API tests
+Jenkins job qa-lab/main: Prepare → Build image → Component and API tests
   → QA · Deploy → QA · Smoke → QA · BDD regression → Test summary
   → ⏸ Approval · Deploy to UAT?  (QA decision)
   → UAT · Deploy → UAT · Smoke ──✕ fails: pipeline stops + UAT rolled back to the previous version
@@ -91,7 +92,8 @@ Jenkins (polls GitHub main): Prepare → Build image → Component and API tests
 
 The image is built **once** (`qa-lab:<version>-<commit>`) and the same image is promoted from QA to UAT.
 Changes reach `main` only through **pull requests** on GitHub (`main` is protected, see `docs/technical/git.md`).
-Jenkins polls **GitHub** `main` every 2 minutes: every merge triggers the pipeline. There is also a nightly
+Jenkins is a **multibranch** job (`qa-lab`) that scans GitHub every 2 minutes: every push to a branch runs
+build + component/API tests, and every merge to `main` runs the full pipeline. There is also a nightly
 regression in QA (weekdays, ~02:00) that is not promoted to UAT. Parameters: `REGRESSION` (full/critical) and `CHALLENGE_MODE`.
 
 Docker Desktop shows three groups: **`qa`**, **`uat`** and **`qa-lab-tools`** (Jenkins + Adminer).
@@ -138,7 +140,7 @@ powershell -ExecutionPolicy Bypass -File scripts\update_tools.ps1 -PauseOnly   #
 powershell -ExecutionPolicy Bypass -File scripts\update_tools.ps1              # 3. rebuild, restart Jenkins and resume the pipeline
 ```
 
-Then open http://localhost:8090, sign in with `admin` / `admin`, open **qa-lab-pipeline** and click
+Then open http://localhost:8090, sign in with `admin` / `admin`, open **qa-lab → main** and click
 **Build Now**. The pipeline builds the image and creates the QA environment, then waits for your approval
 ("Deploy to UAT?") before creating UAT.
 

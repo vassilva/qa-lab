@@ -1,10 +1,13 @@
-// QA Lab pipeline (runs on main after a pull request is merged on GitHub):
+// QA Lab pipeline · Jenkins multibranch job "qa-lab" (one job per Git branch, discovered on GitHub):
+//   any branch (feature/..., fix/...): Prepare → Build image → Component and API tests (no deploy)
+//   main (after a pull request is merged):
 //   Build → component tests → QA (deploy, smoke, BDD regression) → test summary
 //   → QA approval "Deploy to UAT?" → UAT (deploy, smoke) → release
 //   If the UAT smoke fails, the pipeline stops and UAT is rolled back to the version it had before.
 // The same image (qa-lab:<version>-<commit>) is tested in QA and promoted to UAT without being rebuilt.
-// Triggers: every merge to main on GitHub (polled every 2 min), manual, and a nightly QA regression
-// (weekdays around 02:00, which does not go on to UAT). Pull requests are checked by GitHub Actions.
+// Triggers: every push to a branch and every merge to main (GitHub scanned every 2 min), manual, and a nightly
+// QA regression on main (weekdays around 02:00, which does not go on to UAT).
+// The pull request gate on GitHub is the GitHub Actions check (same component and API tests).
 
 pipeline {
   agent any
@@ -23,7 +26,7 @@ pipeline {
   }
 
   triggers {
-    cron('H 2 * * 1-5')      // nightly QA regression, weekdays
+    cron(env.BRANCH_NAME == 'main' ? 'H 2 * * 1-5' : '')      // nightly QA regression, weekdays, main only
   }
 
   options {
@@ -41,10 +44,15 @@ pipeline {
           env.APP_VERSION = "${version}-${sha}"
           env.IMAGE = "qa-lab:${env.APP_VERSION}"
           env.BDD_TAGS = (params.REGRESSION == 'critical') ? '@critical' : ''
+          env.IS_MAIN = (env.BRANCH_NAME == null || env.BRANCH_NAME == 'main') ? '1' : '0'
           currentBuild.displayName = "#${env.BUILD_NUMBER} · v${env.APP_VERSION}"
           env.QA_LAB_CHALLENGE = params.CHALLENGE_MODE ? '1' : '0'
           env.NIGHTLY = currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause') ? '1' : '0'
-          currentBuild.description = "${params.REGRESSION ?: 'full'} regression${params.CHALLENGE_MODE ? ' · CHALLENGE MODE' : ''}${env.NIGHTLY == '1' ? ' · nightly (QA only)' : ''}"
+          if (env.IS_MAIN == '1') {
+            currentBuild.description = "${params.REGRESSION ?: 'full'} regression${params.CHALLENGE_MODE ? ' · CHALLENGE MODE' : ''}${env.NIGHTLY == '1' ? ' · nightly (QA only)' : ''}"
+          } else {
+            currentBuild.description = "branch ${env.BRANCH_NAME}: build + component and API tests (no deploy)"
+          }
         }
         sh 'rm -rf reports && mkdir -p reports'
         echo "Version under test: ${env.APP_VERSION}"
@@ -64,18 +72,21 @@ pipeline {
     }
 
     stage('QA · Deploy') {
+      when { environment name: 'IS_MAIN', value: '1' }
       steps {
         sh 'QA_LAB_CHALLENGE="$QA_LAB_CHALLENGE" bash scripts/deploy.sh qa "$APP_VERSION"'
       }
     }
 
     stage('QA · Smoke') {
+      when { environment name: 'IS_MAIN', value: '1' }
       steps {
         sh 'docker exec qa-lab-qa-app bash scripts/smoke.sh'
       }
     }
 
     stage('QA · BDD regression') {
+      when { environment name: 'IS_MAIN', value: '1' }
       steps {
         sh 'docker exec -e BDD_TAGS="$BDD_TAGS" qa-lab-qa-app bash scripts/run_tests.sh bdd'
       }
@@ -88,13 +99,19 @@ pipeline {
     }
 
     stage('Test summary') {
+      when { environment name: 'IS_MAIN', value: '1' }
       steps {
         sh 'python3 scripts/test_summary.py reports "$APP_VERSION"'
       }
     }
 
     stage('Approval · Deploy to UAT?') {
-      when { not { triggeredBy 'TimerTrigger' } }
+      when {
+        allOf {
+          environment name: 'IS_MAIN', value: '1'
+          not { triggeredBy 'TimerTrigger' }
+        }
+      }
       steps {
         timeout(time: 1, unit: 'DAYS') {
           input message: "QA passed for ${env.APP_VERSION} (smoke + BDD regression, see Test summary). Deploy to UAT?",
@@ -110,14 +127,24 @@ pipeline {
     }
 
     stage('UAT · Deploy') {
-      when { not { triggeredBy 'TimerTrigger' } }
+      when {
+        allOf {
+          environment name: 'IS_MAIN', value: '1'
+          not { triggeredBy 'TimerTrigger' }
+        }
+      }
       steps {
         sh 'QA_LAB_CHALLENGE=0 bash scripts/deploy.sh uat "$APP_VERSION"'
       }
     }
 
     stage('UAT · Smoke') {
-      when { not { triggeredBy 'TimerTrigger' } }
+      when {
+        allOf {
+          environment name: 'IS_MAIN', value: '1'
+          not { triggeredBy 'TimerTrigger' }
+        }
+      }
       steps {
         sh 'docker exec qa-lab-uat-app bash scripts/smoke.sh'
       }
@@ -137,7 +164,12 @@ pipeline {
     }
 
     stage('Release') {
-      when { not { triggeredBy 'TimerTrigger' } }
+      when {
+        allOf {
+          environment name: 'IS_MAIN', value: '1'
+          not { triggeredBy 'TimerTrigger' }
+        }
+      }
       steps {
         echo "Release ${env.APP_VERSION} is live in UAT (smoke passed)."
       }
@@ -148,10 +180,17 @@ pipeline {
     always {
       junit allowEmptyResults: true, testResults: 'reports/unit/pytest-unit.xml,reports/qa/behave/*.xml'
       archiveArtifacts allowEmptyArchive: true, artifacts: 'reports/**'
+      script {
+        if (env.IS_MAIN != '1' && env.IMAGE) {
+          sh 'docker image rm -f "$IMAGE" >/dev/null 2>&1 || true'   // branch images are never deployed
+        }
+      }
     }
     success {
       script {
-        if (env.NIGHTLY == '1') {
+        if (env.IS_MAIN != '1') {
+          echo "Branch ${env.BRANCH_NAME}: build and component/API tests passed. Deploy happens after the merge to main."
+        } else if (env.NIGHTLY == '1') {
           echo "Nightly QA regression passed for ${env.APP_VERSION}."
         } else {
           echo "Pipeline finished: ${env.APP_VERSION} deployed to UAT and smoke-tested."

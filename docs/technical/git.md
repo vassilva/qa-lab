@@ -52,20 +52,20 @@ owner. Every change arrives through a **pull request**.
 | 1 | Start from an up-to-date `main` | `git switch main` · `git pull` |
 | 2 | Create a branch | `git switch -c fix/DEF-018-short-name` (or `feature/...`, `docs/...`) |
 | 3 | Commit | `git add -A` · `git commit -m "fix(DEF-018): ..."` |
-| 4 | Push the branch → **GitHub Actions build check** (~1 min) | `git push -u origin fix/DEF-018-short-name` |
+| 4 | Push the branch → **GitHub Actions** check and **Jenkins** job `qa-lab/<branch>` (build + tests, no deploy) | `git push -u origin fix/DEF-018-short-name` |
 | 5 | Open the pull request (template `.github/pull_request_template.md`) | `gh pr create --base main --fill` |
 | 6 | Turn on auto-merge: GitHub merges as soon as the check is green | `gh pr merge --auto --merge` |
-| 7 | Jenkins sees the merge (polls GitHub) → QA → **your approval** → UAT | http://localhost:8090 |
+| 7 | Jenkins job `qa-lab/main` sees the merge → QA → **your approval** → UAT | http://localhost:8090/job/qa-lab/job/main/ |
 | 8 | Bring `main` back locally | `git switch main` · `git pull` |
 
 ```
-push ─► GitHub Actions (build + 102 tests) ─► PR (no extra tests) ─► auto-merge
-      ─► Jenkins: QA deploy → smoke → BDD regression → ⏸ approval → UAT deploy → smoke (✕ = rollback)
+push ─► GitHub Actions + Jenkins qa-lab/<branch> (build + 102 tests) ─► PR (no extra tests) ─► auto-merge
+      ─► Jenkins qa-lab/main: QA deploy → smoke → BDD regression → ⏸ approval → UAT deploy → smoke (✕ = rollback)
 ```
 
 | Gate | Where | If it fails |
 | --- | --- | --- |
-| Build check (component + API tests) | GitHub Actions, on push | The PR cannot be merged |
+| Build check (component + API tests) | GitHub Actions (required check) and Jenkins branch job, on push | The PR cannot be merged |
 | QA smoke + BDD regression | Jenkins, after the merge | The pipeline stops, the version never reaches UAT |
 | QA approval "Deploy to UAT?" | Jenkins, `input` | No answer in 1 day or Abort = no UAT deploy |
 | UAT smoke | Jenkins | Pipeline stops and UAT is rolled back to the previous version |

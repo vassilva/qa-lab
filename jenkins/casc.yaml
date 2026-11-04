@@ -1,6 +1,6 @@
 # Jenkins configuration as code (Configuration as Code plugin)
 jenkins:
-  systemMessage: "QA Lab · lab Jenkins · GitHub PR → merge → Build → QA → approval → UAT (rollback on failed smoke)"
+  systemMessage: "QA Lab · lab Jenkins · branches: build + tests · main (after PR merge): Build → QA → approval → UAT (rollback on failed smoke)"
   numExecutors: 2
   mode: NORMAL
   securityRealm:
@@ -25,28 +25,31 @@ unclassified:
 
 jobs:
   - script: |
-      pipelineJob('qa-lab-pipeline') {
-        description('QA Lab: runs after every merge to main on GitHub. Image build, tests, deploy to QA, smoke and BDD regression, QA approval, deploy to UAT, smoke (automatic rollback if it fails). Polls GitHub every 2 minutes.')
-        properties {
-          pipelineTriggers {
-            triggers {
-              pollSCM {
-                scmpoll_spec('H/2 * * * *')
-              }
-            }
+      // Multibranch: one job per Git branch, discovered on GitHub every 2 minutes.
+      //   branches (feature/..., fix/...): build + component and API tests (no deploy)
+      //   main (after the PR merge):       full pipeline QA → approval → UAT (see Jenkinsfile)
+      multibranchPipelineJob('qa-lab') {
+        displayName('qa-lab')
+        description('QA Lab · one job per branch from GitHub (vassilva/qa-lab). Branches: build + component and API tests. main: build, QA deploy, smoke, BDD regression, approval "Deploy to UAT?", UAT deploy and smoke (rollback if it fails).')
+        branchSources {
+          git {
+            id('qa-lab-github')
+            remote('https://github.com/vassilva/qa-lab.git')   // local alternative: file:///repo/qa-lab
           }
         }
-        definition {
-          cpsScm {
-            scm {
-              git {
-                remote {
-                  url('https://github.com/vassilva/qa-lab.git')   // GitHub: changes arrive by pull request (local alternative: file:///repo/qa-lab)
-                }
-                branch('*/main')
-              }
-            }
+        factory {
+          workflowBranchProjectFactory {
             scriptPath('Jenkinsfile')
+          }
+        }
+        triggers {
+          periodicFolderTrigger {
+            interval('2m')                                      // scan GitHub for new branches and commits
+          }
+        }
+        orphanedItemStrategy {
+          discardOldItems {
+            daysToKeep(7)                                       // jobs of merged/deleted branches are removed
           }
         }
       }

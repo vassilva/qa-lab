@@ -6,3 +6,5 @@ git
 junit
 timestamper
 dark-theme
+workflow-multibranch
+branch-api
