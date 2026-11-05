@@ -7,3 +7,4 @@ reports/
 .venv/
 .env
 .coverage
+.vscode/
